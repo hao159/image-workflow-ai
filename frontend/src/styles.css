@@ -1,0 +1,160 @@
+@import './styles/palette.css';
+@import './styles/toolbar.css';
+@import './styles/workflow-node.css';
+@import './styles/settings-modal.css';
+@import './styles/react-flow-overrides.css';
+@import './styles/connect-menu.css';
+@import './styles/image-viewer-modal.css';
+
+/* ---------- Design tokens ---------- */
+:root {
+  /* surfaces */
+  --bg-app: #101117;
+  --bg-canvas: #14151d;
+  --bg-panel: #181922;
+  --bg-raised: #1f202c;
+  --bg-input: #13141c;
+  --bg-hover: #262736;
+
+  /* lines */
+  --border: #272836;
+  --border-strong: #34354a;
+
+  /* text */
+  --text: #e9eaf2;
+  --text-dim: #9b9db4;
+  --text-faint: #686b85;
+
+  /* brand — accent solid, không dùng gradient (bản sắc phẳng, hình học) */
+  --accent: #7c5cff;
+  --accent-hover: #8d70ff;
+  --accent-soft: rgba(124, 92, 255, 0.18);
+
+  /* status */
+  --ok: #34d399;
+  --err: #f87171;
+  --run: #38bdf8;
+
+  /* node categories */
+  --cat-input: #34d399;
+  --cat-ai: #a78bfa;
+  --cat-transform: #fbbf24;
+  --cat-output: #38bdf8;
+  --cat-misc: #94a3b8;
+
+  /* màu handle theo kiểu dữ liệu cổng */
+  --dtype-image: #fbbf24;
+  --dtype-text: #34d399;
+
+  --radius-sm: 7px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 8px 28px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.55);
+
+  --font: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root {
+  margin: 0;
+  height: 100%;
+  font-family: var(--font);
+  background: var(--bg-app);
+  color: var(--text);
+}
+
+.app { display: flex; height: 100%; }
+
+/* ---------- Scrollbars ---------- */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
+
+/* ---------- Buttons (dùng chung) ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-strong);
+  color: var(--text);
+  border-radius: var(--radius-sm);
+  padding: 7px 12px;
+  font-size: 12.5px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.15s, background 0.15s, color 0.15s, box-shadow 0.15s;
+}
+.btn:hover:not(:disabled) { border-color: var(--accent); background: var(--bg-hover); }
+.btn:disabled { opacity: 0.4; cursor: default; }
+
+.btn svg { flex-shrink: 0; }
+
+.btn.primary {
+  background: var(--accent);
+  border: none;
+  color: #fff;
+  font-weight: 600;
+  padding: 8px 16px;
+  box-shadow: 0 2px 12px var(--accent-soft);
+}
+.btn.primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+  box-shadow: 0 2px 18px rgba(124, 92, 255, 0.4);
+}
+
+.btn.ghost { background: transparent; border-color: transparent; color: var(--text-dim); }
+.btn.ghost:hover:not(:disabled) { background: var(--bg-hover); border-color: var(--border-strong); color: var(--text); }
+
+.btn.danger:hover:not(:disabled) {
+  border-color: var(--err);
+  color: var(--err);
+  background: rgba(248, 113, 113, 0.08);
+}
+
+/* ---------- Icon button nhỏ (overlay trên preview, card file) ---------- */
+.icon-btn {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  border-radius: 6px;
+  background: rgba(10, 11, 18, 0.55);
+  border: 1px solid var(--border-strong);
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.icon-btn:hover:not(:disabled) {
+  color: var(--text);
+  border-color: var(--accent);
+  background: rgba(10, 11, 18, 0.8);
+}
+.icon-btn:disabled { opacity: 0.4; cursor: default; }
+
+/* ---------- Spinner ---------- */
+.spinner {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  border: 2px solid rgba(56, 189, 248, 0.25);
+  border-top-color: var(--run);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes pulse { 50% { opacity: 0.35; } }
+
+/* Tôn trọng người dùng tắt animation ở hệ điều hành */
+@media (prefers-reduced-motion: reduce) {
+  .wf-node, .status-dot, .spinner { animation: none !important; }
+  .wf-node .wf-node-header::after { animation: none !important; }
+}

@@ -1,0 +1,52 @@
+/* ---------- Lightbox xem ảnh (click ảnh trên node để mở) ---------- */
+.img-viewer-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100; /* trên SettingsModal (z-index 50) + ConnectMenu */
+  background: rgba(8, 9, 14, 0.85);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 56px 24px 24px;
+  cursor: zoom-out;
+}
+.img-viewer-img {
+  max-width: 92vw;
+  max-height: 85vh;
+  object-fit: contain;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow-lg);
+  cursor: default;
+}
+.img-viewer-actions {
+  position: fixed;
+  top: 14px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.img-viewer-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 12.5px;
+  font-family: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.img-viewer-btn.icon-only { padding: 7px 8px; }
+.img-viewer-btn:hover {
+  border-color: var(--accent);
+  background: var(--bg-hover);
+}

@@ -1,0 +1,26 @@
+# Secrets / env
+.env
+.env.*
+!.env.example
+
+# Python
+.venv/
+backend/.venv/
+__pycache__/
+*.pyc
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+
+# Runtime data / artifacts
+outputs/
+uploads/
+cache/
+logs/
+data.db
+*.db
+
+# ClaudeKit tooling (rules/skills/deps — not project code)
+.claude/
+release-manifest.json

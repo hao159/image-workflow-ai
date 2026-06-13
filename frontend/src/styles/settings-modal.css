@@ -1,0 +1,150 @@
+/* ---------- Modal cài đặt model ---------- */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(8, 9, 14, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.modal {
+  width: 580px;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 64px);
+  overflow-y: auto;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+  box-shadow: var(--shadow-lg);
+}
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin-bottom: 6px;
+}
+.modal-title { display: inline-flex; align-items: center; gap: 8px; }
+.modal-hint { font-size: 12px; color: var(--text-dim); line-height: 1.5; margin: 0 0 14px; }
+
+/* ---------- Section trong modal cài đặt ---------- */
+.settings-section { margin-bottom: 18px; }
+.settings-section-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-faint);
+  margin-bottom: 8px;
+}
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+}
+.settings-row > span { font-size: 12.5px; color: var(--text-dim); }
+.settings-row select {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  padding: 7px 10px;
+  font-size: 12px;
+  font-family: inherit;
+}
+.settings-row select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
+.config-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+  margin-bottom: 16px;
+}
+.config-table th {
+  text-align: left;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-faint);
+  padding: 4px 8px;
+}
+.config-table td { padding: 8px; border-top: 1px solid var(--border); }
+.config-table tbody tr { transition: background 0.12s; }
+.config-table tbody tr:hover { background: var(--bg-raised); }
+.config-table .dim { color: var(--text-faint); }
+.config-actions { display: flex; gap: 6px; justify-content: flex-end; }
+
+.config-form {
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+.config-form-title { font-size: 13px; font-weight: 600; }
+.config-form label { display: flex; flex-direction: column; gap: 5px; }
+.config-form label span {
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+}
+.config-form input,
+.config-form select {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  padding: 8px 11px;
+  font-size: 12.5px;
+  font-family: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.config-form input::placeholder { color: var(--text-faint); }
+.config-form input:focus, .config-form select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+.config-form-actions { display: flex; gap: 8px; margin-top: 2px; }
+
+/* ---------- Khối đăng nhập OpenAI (Codex OAuth) ---------- */
+.oauth-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 11px 12px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.oauth-status { font-size: 12.5px; color: var(--text-dim); }
+.oauth-status.ok { color: var(--ok); }
+.oauth-status .dim { color: var(--text-faint); }
+.oauth-hint { font-size: 11px; color: var(--text-faint); line-height: 1.5; margin: 0; }
+.config-error {
+  padding: 8px 11px;
+  background: rgba(248, 113, 113, 0.08);
+  border: 1px solid rgba(248, 113, 113, 0.35);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  color: var(--err);
+}

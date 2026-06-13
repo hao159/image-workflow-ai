@@ -1,0 +1,109 @@
+/* ---------- Thanh công cụ trên canvas ---------- */
+.canvas-wrap { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+}
+
+.wf-name {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--radius-sm);
+  padding: 7px 11px;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  width: 190px;
+}
+.wf-name::placeholder { color: var(--text-faint); font-weight: 400; }
+.wf-name:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
+.toolbar-sep { width: 1px; height: 22px; background: var(--border-strong); margin: 0 4px; flex-shrink: 0; }
+.toolbar-spacer { flex: 1; }
+
+/* chevron menu Workflows xoay khi mở */
+.chev { transition: transform 0.15s; }
+.chev.open { transform: rotate(180deg); }
+
+/* ---------- Status chip ---------- */
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-strong);
+  color: var(--text-dim);
+  max-width: 380px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.status-chip.ok {
+  color: var(--ok);
+  border-color: rgba(52, 211, 153, 0.35);
+  background: rgba(52, 211, 153, 0.08);
+}
+.status-chip.err {
+  color: var(--err);
+  border-color: rgba(248, 113, 113, 0.35);
+  background: rgba(248, 113, 113, 0.08);
+}
+.status-chip.busy {
+  color: var(--run);
+  border-color: rgba(56, 189, 248, 0.35);
+  background: rgba(56, 189, 248, 0.08);
+}
+
+/* ---------- Menu workflow đã lưu ---------- */
+.wf-menu { position: relative; }
+.wf-menu-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 30;
+  min-width: 320px;
+  max-height: 340px;
+  overflow-y: auto;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  padding: 6px;
+}
+.wf-menu-empty { padding: 12px; font-size: 12.5px; color: var(--text-faint); }
+.wf-menu-item { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+.wf-menu-item:last-child { margin-bottom: 0; }
+.wf-menu-open {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  padding: 8px 10px;
+  font-size: 12.5px;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+  min-width: 0;
+  transition: background 0.12s, border-color 0.12s;
+}
+.wf-menu-open:hover { background: var(--bg-hover); border-color: var(--border-strong); }
+.wf-menu-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.wf-menu-date { font-size: 10.5px; color: var(--text-faint); flex-shrink: 0; }

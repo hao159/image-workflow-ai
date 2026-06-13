@@ -1,0 +1,341 @@
+/* ---------- Node trên canvas ----------
+   KHÔNG đặt overflow: hidden ở đây — handle nối dây nằm tràn ra ngoài
+   mép node (left/right âm) sẽ bị cắt mất. Góc bo của header xử lý riêng. */
+.wf-node {
+  --node-accent: var(--cat-misc);
+  background: var(--bg-panel);
+  border: 1.5px solid #41435f;
+  border-radius: var(--radius-lg);
+  width: 256px;
+  font-size: 12.5px;
+  box-shadow: var(--shadow-md);
+  transition: border-color 0.15s, box-shadow 0.2s;
+}
+.react-flow__node.selected .wf-node {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent), var(--shadow-md);
+}
+.wf-node.status-running {
+  border-color: var(--run);
+  box-shadow: 0 0 0 1px var(--run), 0 0 24px rgba(56, 189, 248, 0.25);
+}
+.wf-node.status-done { border-color: color-mix(in srgb, var(--ok) 55%, var(--border-strong)); }
+.wf-node.status-error { border-color: var(--err); }
+
+.wf-node-header {
+  position: relative; /* neo strip accent + thanh quét hiệu ứng scan */
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  background: color-mix(in srgb, var(--node-accent) 9%, var(--bg-raised));
+  border-bottom: 1px solid var(--border);
+  /* Bo góc trên CHÍNH header (không bo ở .wf-node vì handle nối dây tràn mép
+     node sẽ bị cắt). overflow:hidden chỉ ở đây để cắt strip accent + thanh
+     scan theo đúng đường bo — header không chứa handle nên cắt vô hại. */
+  border-radius: calc(var(--radius-lg) - 2px) calc(var(--radius-lg) - 2px) 0 0;
+  overflow: hidden;
+}
+/* strip accent phẳng trên đỉnh node — bản sắc thiết kế thay cho gradient */
+.wf-node-header::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 2px;
+  border-radius: calc(var(--radius-lg) - 2px) calc(var(--radius-lg) - 2px) 0 0;
+  background: var(--node-accent);
+}
+.wf-node-icon {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  color: var(--node-accent);
+  background: color-mix(in srgb, var(--node-accent) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--node-accent) 28%, transparent);
+}
+.wf-node-title {
+  flex: 1;
+  font-weight: 600;
+  font-size: 12.5px;
+  letter-spacing: -0.01em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.wf-node-close {
+  display: grid;
+  place-items: center;
+  background: none;
+  border: none;
+  color: var(--text-faint);
+  line-height: 1;
+  padding: 1px;
+  cursor: pointer;
+  /* Luôn hiển thị (mờ nhẹ) để dễ thấy nút xóa; rõ hơn khi rê chuột vào node. */
+  opacity: 0.45;
+  transition: opacity 0.15s, color 0.15s;
+}
+.wf-node:hover .wf-node-close { opacity: 1; }
+.wf-node-close:hover { color: var(--err); opacity: 1; }
+
+/* Phụ đề "Mô tả ảnh" dưới header — đặt tên node nguồn; ellipsis 1 dòng, tooltip đủ */
+.wf-node-subtitle {
+  padding: 5px 12px;
+  font-size: 11px;
+  color: var(--text-dim);
+  background: color-mix(in srgb, var(--node-accent) 5%, var(--bg-raised));
+  border-bottom: 1px solid var(--border);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Nút ▶ "Chạy tới node này" trên header — kiểu ghost như nút xóa, accent màu run */
+.wf-node-run {
+  display: grid;
+  place-items: center;
+  background: none;
+  border: none;
+  color: var(--text-faint);
+  line-height: 1;
+  padding: 1px;
+  cursor: pointer;
+  opacity: 0.45;
+  transition: opacity 0.15s, color 0.15s;
+}
+.wf-node:hover .wf-node-run { opacity: 1; }
+.wf-node-run:hover:not(:disabled) { color: var(--run); opacity: 1; }
+.wf-node-run:disabled { opacity: 0.25; cursor: default; }
+
+/* Badge ⚡ cache: node dùng lại output cache (không thực thi, không gọi API) */
+.wf-node-cache-badge {
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+  background: rgba(250, 204, 21, 0.16);
+  color: #facc15;
+}
+
+.status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-faint); flex-shrink: 0; }
+.status-dot.running { background: var(--run); box-shadow: 0 0 8px var(--run); animation: pulse 1s infinite; }
+.status-dot.done { background: var(--ok); box-shadow: 0 0 6px rgba(52, 211, 153, 0.5); }
+.status-dot.error { background: var(--err); box-shadow: 0 0 6px rgba(248, 113, 113, 0.5); }
+
+/* ---------- Cổng vào/ra ---------- */
+.wf-node-ports { display: flex; justify-content: space-between; padding: 7px 0 4px; }
+.wf-node-inputs, .wf-node-outputs { display: flex; flex-direction: column; gap: 4px; }
+.wf-port { position: relative; display: flex; align-items: center; height: 20px; padding: 0 14px; }
+.wf-port.out { justify-content: flex-end; }
+.wf-port-label { font-size: 11px; color: var(--text-dim); }
+/* Badge "đã nối" trên cổng input đang có dây — báo nguồn giá trị tới từ node khác */
+.wf-port-badge {
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  background: rgba(52, 211, 153, 0.16);
+  color: #34d399;
+}
+/* Handle to + sáng + glow theo màu kiểu dữ liệu để dễ thấy điểm nối dây */
+.wf-handle {
+  width: 13px !important;
+  height: 13px !important;
+  border: 2.5px solid var(--bg-canvas) !important;
+  transition: box-shadow 0.12s;
+}
+.wf-handle.dtype-image {
+  background: var(--dtype-image) !important;
+  box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--dtype-image) 45%, transparent),
+    0 0 7px color-mix(in srgb, var(--dtype-image) 60%, transparent);
+}
+.wf-handle.dtype-text {
+  background: var(--dtype-text) !important;
+  box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--dtype-text) 45%, transparent),
+    0 0 7px color-mix(in srgb, var(--dtype-text) 60%, transparent);
+}
+/* cổng nhận nhiều dây: hình vuông để phân biệt */
+.wf-handle.multi { border-radius: 3.5px !important; }
+.wf-port .wf-handle { position: absolute !important; }
+.wf-port:not(.out) .wf-handle { left: -6.5px !important; }
+.wf-port.out .wf-handle { right: -6.5px !important; }
+
+/* ---------- Form tham số trong node ---------- */
+.wf-node-params { padding: 4px 12px 11px; display: flex; flex-direction: column; gap: 8px; }
+.wf-param { display: flex; flex-direction: column; gap: 4px; }
+.wf-param-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+}
+.wf-param-empty {
+  font-size: 11px;
+  font-style: italic;
+  color: var(--text-faint);
+  padding: 4px 0;
+}
+.wf-param input[type='text'],
+.wf-param input[type='number'],
+.wf-param select,
+.wf-param textarea {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  padding: 6px 9px;
+  font-size: 12px;
+  font-family: inherit;
+  resize: vertical;
+  width: 100%;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.wf-param input::placeholder, .wf-param textarea::placeholder { color: var(--text-faint); }
+.wf-param input:focus, .wf-param select:focus, .wf-param textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+.wf-param input[type='checkbox'] { width: auto; align-self: flex-start; accent-color: var(--accent); }
+
+/* ---------- Ô upload ảnh trong node ---------- */
+.upload-drop {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 100%;
+  padding: 12px 10px;
+  background: var(--bg-input);
+  border: 1.5px dashed var(--border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--text-dim);
+  font-size: 11.5px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.upload-drop:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--text);
+  background: var(--bg-hover);
+}
+.upload-drop:disabled { opacity: 0.5; cursor: default; }
+
+.upload-preview { position: relative; }
+.upload-preview img {
+  display: block;
+  width: 100%;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  cursor: zoom-in;
+}
+.upload-preview-actions {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.upload-preview:hover .upload-preview-actions { opacity: 1; }
+
+/* ---------- Card kết quả file (node Lưu ảnh) ---------- */
+.wf-file-result {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0 11px 11px;
+  padding: 7px;
+  background: var(--bg-input);
+  border: 1px solid color-mix(in srgb, var(--ok) 35%, var(--border));
+  border-radius: var(--radius-sm);
+}
+.wf-file-thumb {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  cursor: zoom-in;
+}
+.wf-file-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.wf-file-name {
+  font-size: 11px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.wf-file-hint { font-size: 10px; color: var(--ok); }
+
+/* ---------- Kết quả node ---------- */
+.wf-node-preview { padding: 2px 11px 11px; }
+.wf-node-preview img {
+  width: 100%;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  display: block;
+  cursor: zoom-in;
+}
+.wf-node-text-output {
+  margin: 0 11px 11px;
+  padding: 7px 9px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  color: var(--ok);
+  word-break: break-all;
+}
+.wf-node-error {
+  margin: 0 11px 11px;
+  padding: 7px 9px;
+  background: rgba(248, 113, 113, 0.08);
+  border: 1px solid rgba(248, 113, 113, 0.35);
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  color: var(--err);
+  white-space: pre-wrap;
+}
+
+/* ---------- Hiệu ứng node đang chạy ----------
+   Chọn trong Cài đặt > Giao diện: auto (theo loại node) / glow / scan / pulse / off.
+   Mặc định auto: AI = scan, Biến đổi = pulse, Đầu vào/Đầu ra = glow. */
+.wf-node.effect-glow { animation: node-run-glow 1.5s ease-in-out infinite; }
+@keyframes node-run-glow {
+  0%, 100% { box-shadow: 0 0 0 1px var(--run), 0 0 10px rgba(56, 189, 248, 0.2); }
+  50% { box-shadow: 0 0 0 1.5px var(--run), 0 0 26px rgba(56, 189, 248, 0.55); }
+}
+
+.wf-node.effect-pulse { animation: node-run-pulse 0.9s ease-in-out infinite; }
+@keyframes node-run-pulse {
+  0%, 100% { border-color: var(--run); box-shadow: 0 0 0 1px var(--run), var(--shadow-md); }
+  50% { border-color: color-mix(in srgb, var(--run) 30%, var(--border-strong)); box-shadow: var(--shadow-md); }
+}
+
+/* thanh sáng quét qua lại dưới header */
+.wf-node.effect-scan .wf-node-header::after {
+  content: '';
+  position: absolute;
+  bottom: 0; /* header có overflow:hidden — đặt sát mép dưới để không bị cắt */
+  left: 0;
+  height: 2px;
+  width: 36%;
+  border-radius: 2px;
+  background: var(--run);
+  box-shadow: 0 0 8px var(--run);
+  animation: node-run-scan 1.1s ease-in-out infinite alternate;
+}
+@keyframes node-run-scan {
+  from { transform: translateX(0); }
+  to { transform: translateX(178%); }
+}

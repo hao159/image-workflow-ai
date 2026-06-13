@@ -1,0 +1,69 @@
+/* ---------- Tùy biến giao diện React Flow ---------- */
+.react-flow { background: var(--bg-canvas); }
+
+/* Dây nối — tăng độ sáng/độ dày để dễ thấy trên nền tối */
+.react-flow__edge-path { stroke: #767b9e; stroke-width: 2.2; }
+.react-flow__edge:hover .react-flow__edge-path { stroke: #a0a4c4; }
+.react-flow__edge.selected .react-flow__edge-path { stroke: var(--accent); stroke-width: 2.6; }
+/* dây đang chạy workflow (edge animated): đổi màu + nét chạy "kiến bò" */
+.react-flow__edge.animated .react-flow__edge-path { stroke: var(--run); stroke-width: 2.4; }
+.react-flow__connection-path { stroke: var(--accent); stroke-width: 2.2; stroke-dasharray: 6 4; }
+
+/* Vùng bắt hover trong suốt rộng quanh dây để rê chuột vào dễ hơn */
+.wf-edge-hit { cursor: pointer; }
+
+/* Nút × xóa dây nối — hiện khi rê chuột vào dây hoặc khi dây được chọn */
+.wf-edge-delete {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border-radius: 50%;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-strong);
+  color: var(--text-dim);
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  box-shadow: var(--shadow-sm);
+  transition: opacity 0.12s, color 0.12s, border-color 0.12s, background 0.12s;
+}
+.wf-edge-delete.show { opacity: 1; pointer-events: all; }
+.wf-edge-delete:hover {
+  color: var(--err);
+  border-color: var(--err);
+  background: rgba(248, 113, 113, 0.12);
+}
+
+/* Nút điều khiển zoom/fit */
+.react-flow__controls {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+.react-flow__controls-button {
+  background: transparent;
+  border-bottom: 1px solid var(--border);
+  fill: var(--text-dim);
+  width: 26px;
+  height: 26px;
+}
+.react-flow__controls-button:last-child { border-bottom: none; }
+.react-flow__controls-button:hover { background: var(--bg-hover); fill: var(--text); }
+
+/* Bản đồ thu nhỏ */
+.react-flow__minimap {
+  background-color: var(--bg-panel);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+.react-flow__minimap-mask { fill: rgba(16, 17, 23, 0.72); }
+.react-flow__minimap-node { fill: var(--bg-hover); }
+
+.react-flow__attribution { background: transparent; color: var(--text-faint); }

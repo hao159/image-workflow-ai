@@ -1,0 +1,34 @@
+{
+  "name": "vi-du-tao-va-sua-anh",
+  "nodes": [
+    {
+      "id": "text_prompt_1",
+      "type": "text_prompt",
+      "params": { "text": "một chú mèo phi hành gia đang trôi trong vũ trụ, phong cách hoạt hình pixar" },
+      "position": { "x": 0, "y": 60 }
+    },
+    {
+      "id": "generate_1",
+      "type": "generate_image",
+      "params": { "provider": "gemini", "model": "", "prompt": "", "aspect_ratio": "1:1", "negative_prompt": "" },
+      "position": { "x": 320, "y": 0 }
+    },
+    {
+      "id": "edit_1",
+      "type": "edit_image",
+      "params": { "provider": "gemini", "model": "", "prompt": "đổi nền thành bề mặt sao Hỏa màu đỏ cam", "denoise": 0.6 },
+      "position": { "x": 660, "y": 0 }
+    },
+    {
+      "id": "save_1",
+      "type": "save_image",
+      "params": { "prefix": "meo-sao-hoa" },
+      "position": { "x": 1000, "y": 60 }
+    }
+  ],
+  "edges": [
+    { "id": "e1", "source": "text_prompt_1", "sourceHandle": "text", "target": "generate_1", "targetHandle": "prompt" },
+    { "id": "e2", "source": "generate_1", "sourceHandle": "image", "target": "edit_1", "targetHandle": "image" },
+    { "id": "e3", "source": "edit_1", "sourceHandle": "image", "target": "save_1", "targetHandle": "image" }
+  ]
+}
