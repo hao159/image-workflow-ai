@@ -1,5 +1,6 @@
 from .base import BaseNode, NODE_REGISTRY, register_node
-from . import inputs, generate, edit, enhance_prompt, transform, output  # noqa: F401 — đăng ký node
+from . import (inputs, generate, edit, enhance_prompt, transform, output,  # noqa: F401 — đăng ký node
+               extract_region)  # noqa: F401
 
 
 def get_node_class(type_name: str) -> type[BaseNode]:

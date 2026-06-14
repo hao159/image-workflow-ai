@@ -11,6 +11,7 @@ import {
 } from '@xyflow/react'
 import Palette from './components/Palette.jsx'
 import SettingsModal from './components/SettingsModal.jsx'
+import WorkflowBrowserModal from './components/workflow-browser-modal.jsx'
 import WorkflowNode from './components/WorkflowNode.jsx'
 import DeletableEdge from './components/DeletableEdge.jsx'
 import ConnectNodeMenu from './components/ConnectNodeMenu.jsx'
@@ -36,6 +37,7 @@ import {
   openRunSocket,
   saveWorkflow,
 } from './api.js'
+import { resolveTheme } from './ui-settings.js'
 
 const nodeTypes = { wf: WorkflowNode }
 const edgeTypes = { deletable: DeletableEdge }
@@ -52,11 +54,34 @@ export default function App() {
   const [runningNodeId, setRunningNodeId] = useState(null)
   const [statusMsg, setStatusMsg] = useState('')
   const [showSettings, setShowSettings] = useState(false)
-  const [showWorkflows, setShowWorkflows] = useState(false)
+  const [showWorkflowBrowser, setShowWorkflowBrowser] = useState(false)
+  // Harness mode (chạy lặp critic-refine): cấu hình + nhật ký iteration + report
+  const [harnessCfg, setHarnessCfg] = useState({
+    max_iterations: 3, pass_score: 8, criteria: '', critic_provider: '',
+  })
+  const [showHarness, setShowHarness] = useState(false)
+  const [harnessLog, setHarnessLog] = useState([]) // [{iteration, score, passed, feedback}]
+  const [harnessReport, setHarnessReport] = useState(null)
   // Khi kéo dây thả ra khoảng trống → mở menu chọn node để tạo + tự nối.
   const [connectMenu, setConnectMenu] = useState(null)
+  // Theme hiện tại ('light'|'dark') để React Flow đổi colorMode + màu lưới nền
+  // theo Sáng/Tối. Nghe sự kiện 'iw-theme-change' (phát từ ui-settings.applyTheme).
+  const [theme, setTheme] = useState(resolveTheme)
   const { screenToFlowPosition, updateNodeData } = useReactFlow()
   const wsRef = useRef(null)
+
+  useEffect(() => {
+    const onThemeChange = (e) => setTheme(e.detail?.theme || resolveTheme())
+    window.addEventListener('iw-theme-change', onThemeChange)
+    return () => window.removeEventListener('iw-theme-change', onThemeChange)
+  }, [])
+
+  // React Flow <Background> nhận màu trực tiếp (không qua CSS var) → đọc token
+  // --rf-grid đã đổi theo theme từ computed style, tính lại mỗi khi theme đổi.
+  const gridColor = useMemo(() => {
+    if (typeof window === 'undefined') return '#262b35'
+    return getComputedStyle(document.documentElement).getPropertyValue('--rf-grid').trim() || '#262b35'
+  }, [theme])
 
   const metaByType = useMemo(
     () => Object.fromEntries(nodeTypeMetas.map((m) => [m.type, m])),
@@ -279,12 +304,14 @@ export default function App() {
   // Mở socket chạy workflow. `target` = chạy tới node đó (+ tổ tiên), `force` =
   // danh sách node ép chạy lại (bỏ qua cache). Dùng chung cho chạy tổng + ▶ node.
   const startRun = useCallback(
-    ({ target = null, force = [] } = {}) => {
+    ({ target = null, force = [], harness = null } = {}) => {
       if (running || nodes.length === 0) return
       setRunning(true)
       setRunningNodeId(target)
-      setStatusMsg(target ? 'Đang chạy node...' : 'Đang chạy...')
+      setStatusMsg(harness ? 'Harness: đang chạy...' : target ? 'Đang chạy node...' : 'Đang chạy...')
       setEdgesAnimated(true)
+      setHarnessLog([])
+      setHarnessReport(null)
       // Chạy tổng → reset hết. Chạy 1 node → chỉ reset node đó (giữ preview các
       // node khác; node cache-hit upstream tự cập nhật qua event node_finished).
       setNodes((nds) =>
@@ -299,7 +326,10 @@ export default function App() {
       wsRef.current = ws
       let runEnded = false // true khi đã nhận run_finished/run_error — onclose sau đó là bình thường
       ws.onopen = () =>
-        ws.send(JSON.stringify({ workflow: buildPayload(), target, force }))
+        ws.send(JSON.stringify({
+          workflow: buildPayload(), target, force,
+          ...(harness ? { harness } : {}),
+        }))
       ws.onmessage = (msg) => {
         const ev = JSON.parse(msg.data)
         switch (ev.type) {
@@ -316,6 +346,16 @@ export default function App() {
             break
           case 'node_error':
             updateNodeData(ev.node_id, { status: 'error', error: ev.message })
+            break
+          case 'harness_iteration':
+            setHarnessLog((l) => [...l, {
+              iteration: ev.iteration, score: ev.score,
+              passed: ev.passed, feedback: ev.message || '',
+            }])
+            setStatusMsg(`Harness vòng ${(ev.iteration ?? 0) + 1}: điểm ${ev.score}${ev.passed ? ' ✓' : ''}`)
+            break
+          case 'harness_report':
+            setHarnessReport(ev.report || null)
             break
           case 'run_finished':
             runEnded = true
@@ -356,6 +396,23 @@ export default function App() {
   const run = useCallback(() => startRun({ target: null, force: [] }), [startRun])
   // ▶ trên node: chạy tới node đó + ép chính nó chạy lại (xem output / sinh ảnh mới).
   const runNode = useCallback((id) => startRun({ target: id, force: [id] }), [startRun])
+  // ▶ Chạy (harness): lặp critic-refine tới khi đạt/hết limit, xuất best + report.
+  const runHarness = useCallback(() => {
+    setShowHarness(false)
+    startRun({
+      harness: {
+        enabled: true,
+        // Number.isFinite → tôn trọng giá trị 0 hợp lệ (vd ngưỡng 0 = luôn đạt vòng 1),
+        // chỉ rơi về mặc định khi ô trống/không phải số.
+        max_iterations: Number.isFinite(Number(harnessCfg.max_iterations)) && harnessCfg.max_iterations !== ''
+          ? Number(harnessCfg.max_iterations) : 3,
+        pass_score: Number.isFinite(Number(harnessCfg.pass_score)) && harnessCfg.pass_score !== ''
+          ? Number(harnessCfg.pass_score) : 8,
+        criteria: harnessCfg.criteria || '',
+        critic_provider: harnessCfg.critic_provider || '',
+      },
+    })
+  }, [startRun, harnessCfg])
 
   const stop = useCallback(() => {
     if (wsRef.current) wsRef.current.onclose = null // dừng chủ động — không báo "mất kết nối"
@@ -379,15 +436,26 @@ export default function App() {
   // Giá trị context cho WorkflowNode (▶ node + biết trạng thái bận để disable).
   const runCtx = useMemo(() => ({ runNode, runningNodeId, running }), [runNode, runningNodeId, running])
 
-  const save = useCallback(async () => {
+  const doSave = useCallback(async (overwrite) => {
     try {
-      const { saved } = await saveWorkflow(buildPayload())
+      const { saved } = await saveWorkflow(buildPayload(), { overwrite })
       setStatusMsg(`Đã lưu "${saved}"`)
       setSavedList(await listWorkflows())
     } catch (e) {
+      // Backend trả 409 (tên đã tồn tại) → hỏi xác nhận ghi đè rồi lưu lại.
+      if (e.code === 'exists') {
+        if (confirm(`Workflow "${workflowName}" đã tồn tại. Ghi đè?`)) {
+          await doSave(true)
+        } else {
+          setStatusMsg('Đã hủy lưu')
+        }
+        return
+      }
       setStatusMsg(`✗ ${e.message}`)
     }
-  }, [buildPayload])
+  }, [buildPayload, workflowName])
+
+  const save = useCallback(() => doSave(false), [doSave])
 
   const removeWorkflow = useCallback(async (name) => {
     if (!confirm(`Xóa workflow "${name}"?`)) return
@@ -428,7 +496,7 @@ export default function App() {
           })),
         )
         setStatusMsg(`Đã tải "${name}"`)
-        setShowWorkflows(false)
+        setShowWorkflowBrowser(false)
       } catch (e) {
         setStatusMsg(`✗ ${e.message}`)
       }
@@ -455,34 +523,56 @@ export default function App() {
           <button className="btn primary" onClick={run} disabled={running || nodes.length === 0}>
             <PlayIcon size={13} /> Chạy
           </button>
+          <div className="wf-menu">
+            <button
+              className="btn"
+              title="Chạy harness: AI lặp tự chấm + sửa tới khi đạt (cần critic Gemini)"
+              onClick={() => setShowHarness((s) => !s)}
+              disabled={running || nodes.length === 0}
+            >
+              <PlayIcon size={12} /> Harness
+              <ChevronDownIcon size={12} className={`chev${showHarness ? ' open' : ''}`} />
+            </button>
+            {showHarness && (
+              <div className="wf-menu-panel" style={{ padding: 12, width: 260, gap: 8, display: 'flex', flexDirection: 'column' }}>
+                <label className="harness-field">
+                  Số vòng tối đa
+                  <input type="number" min={1} max={20} value={harnessCfg.max_iterations}
+                    onChange={(e) => setHarnessCfg((c) => ({ ...c, max_iterations: e.target.value }))} />
+                </label>
+                <label className="harness-field">
+                  Ngưỡng đạt (0–10)
+                  <input type="number" min={0} max={10} step={0.5} value={harnessCfg.pass_score}
+                    onChange={(e) => setHarnessCfg((c) => ({ ...c, pass_score: e.target.value }))} />
+                </label>
+                <label className="harness-field">
+                  Critic (cấu hình Gemini; trống = dùng provider node sinh)
+                  <input type="text" placeholder="vd: Google - Gemini" value={harnessCfg.critic_provider}
+                    onChange={(e) => setHarnessCfg((c) => ({ ...c, critic_provider: e.target.value }))} />
+                </label>
+                <label className="harness-field">
+                  Tiêu chí đạt (tùy chọn)
+                  <textarea rows={2} placeholder="vd: mặt rõ, đúng người, nền sạch" value={harnessCfg.criteria}
+                    onChange={(e) => setHarnessCfg((c) => ({ ...c, criteria: e.target.value }))} />
+                </label>
+                <button className="btn primary" onClick={runHarness} disabled={running || nodes.length === 0}>
+                  <PlayIcon size={12} /> Chạy harness
+                </button>
+              </div>
+            )}
+          </div>
           {running && (
             <button className="btn danger" onClick={stop}><StopIcon size={11} /> Dừng</button>
           )}
           <button className="btn" onClick={save} disabled={nodes.length === 0}>
             <SaveIcon size={14} /> Lưu
           </button>
-          <div className="wf-menu">
-            <button className="btn" onClick={() => setShowWorkflows((s) => !s)}>
-              <FolderIcon size={14} /> Workflows
-              <ChevronDownIcon size={12} className={`chev${showWorkflows ? ' open' : ''}`} />
-            </button>
-            {showWorkflows && (
-              <div className="wf-menu-panel">
-                {savedList.length === 0 && <div className="wf-menu-empty">Chưa có workflow nào.</div>}
-                {savedList.map((wf) => (
-                  <div className="wf-menu-item" key={wf.name}>
-                    <button className="wf-menu-open" title={`Cập nhật: ${wf.updated_at}`} onClick={() => load(wf.name)}>
-                      <span className="wf-menu-name">{wf.name}</span>
-                      <span className="wf-menu-date">{wf.updated_at}</span>
-                    </button>
-                    <button className="btn ghost danger" title="Xóa workflow" onClick={() => removeWorkflow(wf.name)}>
-                      <TrashIcon size={13} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          <button
+            className="btn"
+            onClick={() => { listWorkflows().then(setSavedList).catch(() => {}); setShowWorkflowBrowser(true) }}
+          >
+            <FolderIcon size={14} /> Mở workflow
+          </button>
           <button className="btn" onClick={() => setShowSettings(true)}>
             <GearIcon size={14} /> Cài đặt
           </button>
@@ -515,6 +605,21 @@ export default function App() {
             <TrashIcon size={14} /> Xóa hết
           </button>
         </div>
+        {(harnessLog.length > 0 || harnessReport) && (
+          <div className="harness-panel">
+            <div className="harness-panel-title">
+              Harness {harnessReport ? `· best vòng ${(harnessReport.best_iteration ?? 0) + 1} (điểm ${harnessReport.best_score})` : '· đang chạy...'}
+              {harnessReport?.stopped_early && <span className="harness-warn"> · dừng sớm: {harnessReport.stopped_early}</span>}
+              <button className="btn ghost" onClick={() => { setHarnessLog([]); setHarnessReport(null) }}>✕</button>
+            </div>
+            {harnessLog.map((it) => (
+              <div key={it.iteration} className={`harness-row${it.passed ? ' passed' : ''}`}>
+                <b>Vòng {it.iteration + 1}: {it.score}{it.passed ? ' ✓' : ''}</b>
+                {it.feedback && <span className="harness-fb"> — {it.feedback}</span>}
+              </div>
+            ))}
+          </div>
+        )}
         <RunContext.Provider value={runCtx}>
           <ReactFlow
             nodes={nodes}
@@ -533,10 +638,10 @@ export default function App() {
             }}
             fitView
             deleteKeyCode={['Delete', 'Backspace']}
-            colorMode="dark"
+            colorMode={theme}
             defaultEdgeOptions={{ type: 'deletable', style: { strokeWidth: 1.8 } }}
           >
-            <Background gap={22} size={1.4} color="#272838" />
+            <Background gap={22} size={1.4} color={gridColor} />
             <Controls />
             <MiniMap pannable zoomable />
           </ReactFlow>
@@ -546,6 +651,14 @@ export default function App() {
         <SettingsModal
           onClose={() => setShowSettings(false)}
           onChanged={() => refreshNodeTypes().catch(() => {})}
+        />
+      )}
+      {showWorkflowBrowser && (
+        <WorkflowBrowserModal
+          workflows={savedList}
+          onLoad={load}
+          onDelete={removeWorkflow}
+          onClose={() => setShowWorkflowBrowser(false)}
         />
       )}
       {connectMenu && (

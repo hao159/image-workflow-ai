@@ -4,20 +4,22 @@
 .wf-node {
   --node-accent: var(--cat-misc);
   background: var(--bg-panel);
-  border: 1.5px solid #41435f;
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-lg);
   width: 256px;
   font-size: 12.5px;
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-sm);
   transition: border-color 0.15s, box-shadow 0.2s;
 }
 .react-flow__node.selected .wf-node {
   border-color: var(--accent);
   box-shadow: 0 0 0 1px var(--accent), var(--shadow-md);
 }
+/* Chỉ báo "đang chạy" phẳng: viền + ring mảnh màu run, KHÔNG glow neon.
+   Đây là mặc định (hiệu ứng 'solid'); glow/scan/pulse là tùy chọn nâng cao. */
 .wf-node.status-running {
   border-color: var(--run);
-  box-shadow: 0 0 0 1px var(--run), 0 0 24px rgba(56, 189, 248, 0.25);
+  box-shadow: 0 0 0 1px var(--run), var(--shadow-sm);
 }
 .wf-node.status-done { border-color: color-mix(in srgb, var(--ok) 55%, var(--border-strong)); }
 .wf-node.status-error { border-color: var(--err); }
@@ -117,14 +119,14 @@
   font-size: 10px;
   font-weight: 600;
   white-space: nowrap;
-  background: rgba(250, 204, 21, 0.16);
-  color: #facc15;
+  background: var(--badge-cache-bg);
+  color: var(--badge-cache-fg);
 }
 
 .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-faint); flex-shrink: 0; }
 .status-dot.running { background: var(--run); box-shadow: 0 0 8px var(--run); animation: pulse 1s infinite; }
-.status-dot.done { background: var(--ok); box-shadow: 0 0 6px rgba(52, 211, 153, 0.5); }
-.status-dot.error { background: var(--err); box-shadow: 0 0 6px rgba(248, 113, 113, 0.5); }
+.status-dot.done { background: var(--ok); box-shadow: 0 0 6px color-mix(in srgb, var(--ok) 50%, transparent); }
+.status-dot.error { background: var(--err); box-shadow: 0 0 6px color-mix(in srgb, var(--err) 50%, transparent); }
 
 /* ---------- Cổng vào/ra ---------- */
 .wf-node-ports { display: flex; justify-content: space-between; padding: 7px 0 4px; }
@@ -139,8 +141,8 @@
   border-radius: 999px;
   font-size: 10px;
   font-weight: 600;
-  background: rgba(52, 211, 153, 0.16);
-  color: #34d399;
+  background: var(--badge-port-bg);
+  color: var(--badge-port-fg);
 }
 /* Handle to + sáng + glow theo màu kiểu dữ liệu để dễ thấy điểm nối dây */
 .wf-handle {
@@ -299,8 +301,8 @@
 .wf-node-error {
   margin: 0 11px 11px;
   padding: 7px 9px;
-  background: rgba(248, 113, 113, 0.08);
-  border: 1px solid rgba(248, 113, 113, 0.35);
+  background: color-mix(in srgb, var(--err) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--err) 35%, transparent);
   border-radius: var(--radius-sm);
   font-size: 11px;
   color: var(--err);
@@ -308,12 +310,15 @@
 }
 
 /* ---------- Hiệu ứng node đang chạy ----------
-   Chọn trong Cài đặt > Giao diện: auto (theo loại node) / glow / scan / pulse / off.
-   Mặc định auto: AI = scan, Biến đổi = pulse, Đầu vào/Đầu ra = glow. */
+   Chọn trong Cài đặt > Giao diện: solid (mặc định) / auto (theo loại node) /
+   glow / scan / pulse / off.
+   - solid = chỉ báo phẳng, không animation (dựa vào .status-running ở trên).
+   - auto: AI = scan, Biến đổi = pulse, Đầu vào/Đầu ra = glow (tùy chọn nâng cao). */
+.wf-node.effect-solid { /* không animation — chỉ báo chạy đã nằm ở .status-running */ }
 .wf-node.effect-glow { animation: node-run-glow 1.5s ease-in-out infinite; }
 @keyframes node-run-glow {
-  0%, 100% { box-shadow: 0 0 0 1px var(--run), 0 0 10px rgba(56, 189, 248, 0.2); }
-  50% { box-shadow: 0 0 0 1.5px var(--run), 0 0 26px rgba(56, 189, 248, 0.55); }
+  0%, 100% { box-shadow: 0 0 0 1px var(--run), 0 0 10px color-mix(in srgb, var(--run) 20%, transparent); }
+  50% { box-shadow: 0 0 0 1.5px var(--run), 0 0 26px color-mix(in srgb, var(--run) 55%, transparent); }
 }
 
 .wf-node.effect-pulse { animation: node-run-pulse 0.9s ease-in-out infinite; }

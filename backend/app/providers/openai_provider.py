@@ -2,7 +2,8 @@ import base64
 import io
 
 from .. import config
-from .base import ImageProvider, ProviderError
+from .base import (ImageProvider, ProviderError, parse_bbox_json,
+                  parse_critique_json)
 
 DEFAULT_MODEL = "gpt-image-1"
 # Model cho sinh text (enhance prompt...). gpt-image-* chỉ trả ảnh — nếu cấu
@@ -67,6 +68,51 @@ class OpenAIProvider(ImageProvider):
         if not text:
             raise ProviderError("OpenAI không trả về text nào.")
         return text
+
+    def _vision_json(self, image: bytes, instruction: str, model: str) -> str:
+        """Gọi chat.completions có ẢNH (vision) + ép JSON. Dùng cho detect_region +
+        critique_image. Model "-image" (gpt-image-*) chỉ sinh ảnh → swap sang model
+        vision text (gpt-4o-mini có vision)."""
+        client = self._get_client()
+        use_model = model or TEXT_DEFAULT_MODEL
+        if "image" in use_model:
+            use_model = TEXT_DEFAULT_MODEL
+        data_url = "data:image/png;base64," + base64.b64encode(image).decode()
+        resp = client.chat.completions.create(
+            model=use_model,
+            messages=[{"role": "user", "content": [
+                {"type": "text", "text": instruction},
+                {"type": "image_url", "image_url": {"url": data_url}},
+            ]}],
+            response_format={"type": "json_object"},
+        )
+        if not resp.choices:
+            raise ProviderError("OpenAI không trả về lựa chọn nào (có thể bị content filter).")
+        return resp.choices[0].message.content or ""
+
+    def detect_region(self, image: bytes, target: str, *, model: str = "",
+                      **options) -> list[float]:
+        """Tìm bbox của `target` qua model vision OpenAI. Toạ độ lưới 0..999 (OpenAI
+        khuyến nghị cho độ tin cậy) → chuẩn hóa /999 về 0..1."""
+        instruction = (
+            f'Find the object: "{target}" in the image. '
+            'Return JSON {"found": true|false, "box": [x_min, y_min, x_max, y_max]} '
+            'with INTEGER coordinates on a 0..999 grid (top-left origin, x_max>x_min, '
+            'y_max>y_min), box tight around the object. Not found → {"found": false}.')
+        return parse_bbox_json(self._vision_json(image, instruction, model),
+                               scale=999.0, target=target)
+
+    def critique_image(self, image: bytes, goal: str, criteria: str = "", *,
+                       model: str = "", **options) -> dict:
+        """Chấm ảnh vs mục tiêu (harness critic) qua model vision OpenAI → JSON."""
+        crit = f"\nUser acceptance criteria: {criteria}" if (criteria or "").strip() else ""
+        instruction = (
+            "You are a strict judge scoring an AI-generated image against a GOAL.\n"
+            f"Goal: {goal}{crit}\n"
+            'Return JSON {"score": 0..10 number, "passed": true|false, '
+            '"feedback": "short, concrete fix to reach the goal"}. '
+            "passed=true only if the image is product-ready for the goal.")
+        return parse_critique_json(self._vision_json(image, instruction, model))
 
     def edit(self, images: list[bytes], prompt: str, *, model: str = "",
              **options) -> bytes:

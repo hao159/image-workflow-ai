@@ -26,13 +26,18 @@ def build_reference_block(labels: list[str]) -> str:
     return REFERENCE_HEADER + "\n" + "\n".join(lines)
 
 
-def compose_edit_prompt(labels: list[str], prompt: str) -> str:
+def compose_edit_prompt(labels: list[str], prompt: str,
+                        instruction_override: str | None = None) -> str:
     """Ghép khối tham chiếu + chỉ thị giữ nhận dạng (nếu có nhãn) TRƯỚC prompt.
 
     Không nhãn nào → trả prompt y như cũ (backward compat). Đây là cách trình bày
     dạng-text dùng cho provider KHÔNG xen kẽ được ảnh (OpenAI Images-Edit, ComfyUI);
-    Codex/Gemini còn xen caption ngay trước từng ảnh (xem provider)."""
+    Codex/Gemini còn xen caption ngay trước từng ảnh (xem provider).
+
+    `instruction_override`: chỉ thị do user nhập trên node → ĐÈ chỉ thị identity mặc
+    định. Rỗng/khoảng trắng/None → giữ mặc định (giữ hành vi cũ khi có nhãn)."""
     block = build_reference_block(labels)
     if not block:
         return prompt
-    return f"{block}\n{IMAGE_REF_INSTRUCTION}\n\n{prompt}"
+    instruction = (instruction_override or "").strip() or IMAGE_REF_INSTRUCTION
+    return f"{block}\n{instruction}\n\n{prompt}"

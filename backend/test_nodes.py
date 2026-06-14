@@ -5,8 +5,10 @@ Test thuần Python — không cần backend chạy, không cần API token.
 Chạy: backend\\.venv\\Scripts\\python.exe -m pytest test_nodes.py  (nếu có pytest)
 Hoặc:  backend\\.venv\\Scripts\\python.exe test_nodes.py            (chạy thẳng)
 """
+from app.nodes.edit import EditImageNode
 from app.nodes.generate import GenerateImageNode
-from app.nodes.image_label_block import build_reference_block, compose_edit_prompt
+from app.nodes.image_label_block import (IMAGE_REF_INSTRUCTION,
+                                         build_reference_block, compose_edit_prompt)
 from app.nodes.inputs import CombineTextNode, LoadImageNode
 from app.nodes.prompt_merge import merge_prompt
 
@@ -86,6 +88,41 @@ def test_compose_edit_prompt_no_labels_unchanged():
     # Backward compat: không nhãn → prompt y như cũ
     assert compose_edit_prompt([], "x") == "x"
     assert compose_edit_prompt(["", ""], "x") == "x"
+
+
+# ---------- override chỉ thị hệ thống trong khối tham chiếu ----------
+
+def test_compose_edit_prompt_default_instruction_unchanged():
+    # Backward compat: có nhãn, override None → chỉ thị mặc định nguyên vẹn
+    out = compose_edit_prompt(["áo", "người"], "ghép")
+    assert IMAGE_REF_INSTRUCTION in out
+    assert out == (build_reference_block(["áo", "người"]) + "\n"
+                   + IMAGE_REF_INSTRUCTION + "\n\nghép")
+
+
+def test_compose_edit_prompt_override_replaces_instruction():
+    out = compose_edit_prompt(["áo", "người"], "ghép",
+                              instruction_override="Chỉ đổi nền, giữ nguyên bố cục.")
+    assert "Chỉ đổi nền, giữ nguyên bố cục." in out
+    assert IMAGE_REF_INSTRUCTION not in out
+    assert "KHÔNG tráo mặt" not in out
+
+
+def test_compose_edit_prompt_blank_override_uses_default():
+    # Override toàn khoảng trắng → coi như không có → giữ mặc định
+    out = compose_edit_prompt(["áo", "người"], "ghép", instruction_override="   ")
+    assert IMAGE_REF_INSTRUCTION in out
+
+
+def test_compose_edit_prompt_no_labels_ignores_override():
+    # Không nhãn → prompt nguyên, override không chèn gì
+    assert compose_edit_prompt([], "x", instruction_override="Y") == "x"
+
+
+def test_edit_image_has_instruction_param():
+    params = {p["name"]: p for p in EditImageNode.metadata()["params"]}
+    assert "instruction" in params
+    assert params["instruction"]["ptype"] == "textarea"
 
 
 # ---------- param "Mô tả ảnh" (is_image_label) trên node nguồn ----------

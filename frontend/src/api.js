@@ -12,12 +12,18 @@ export async function uploadImage(file) {
   return res.json()
 }
 
-export async function saveWorkflow(workflow) {
-  const res = await fetch('/api/workflows', {
+export async function saveWorkflow(workflow, { overwrite = false } = {}) {
+  const res = await fetch(`/api/workflows?overwrite=${overwrite}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(workflow),
   })
+  if (res.status === 409) {
+    // Tên đã tồn tại — App bắt .code === 'exists' để hỏi xác nhận ghi đè.
+    const err = new Error('Workflow đã tồn tại.')
+    err.code = 'exists'
+    throw err
+  }
   if (!res.ok) throw new Error('Lưu workflow thất bại.')
   return res.json()
 }
@@ -59,6 +65,49 @@ export async function saveModelConfig(cfg) {
 export async function deleteModelConfig(id) {
   const res = await fetch(`/api/model-configs/${id}`, { method: 'DELETE' })
   if (!res.ok) throw new Error('Xóa cấu hình thất bại.')
+  return res.json()
+}
+
+export async function listProviderModels(provider, { refresh = false, configId, apiKey, baseUrl } = {}) {
+  const body = { refresh }
+  if (configId != null) body.config_id = configId
+  if (apiKey) body.api_key = apiKey
+  if (baseUrl) body.base_url = baseUrl
+  const res = await fetch(`/api/providers/${encodeURIComponent(provider)}/models`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(data.error || 'Không tải được danh sách model.')
+  return data
+}
+
+// ---------- Lịch sử thực thi (exec history) ----------
+
+export async function listExecutions(name, { page = 1, size = 10 } = {}) {
+  const res = await fetch(
+    `/api/workflows/${encodeURIComponent(name)}/executions?page=${page}&size=${size}`)
+  if (!res.ok) throw new Error('Không tải được lịch sử thực thi.')
+  return res.json()
+}
+
+export async function getExecution(id) {
+  const res = await fetch(`/api/executions/${id}`)
+  if (!res.ok) throw new Error('Không tải được chi tiết lần chạy.')
+  return res.json()
+}
+
+export async function deleteExecution(id) {
+  const res = await fetch(`/api/executions/${id}`, { method: 'DELETE' })
+  if (!res.ok) throw new Error('Xóa lần chạy thất bại.')
+  return res.json()
+}
+
+export async function clearExecutions(name) {
+  const res = await fetch(
+    `/api/workflows/${encodeURIComponent(name)}/executions`, { method: 'DELETE' })
+  if (!res.ok) throw new Error('Xóa lịch sử thất bại.')
   return res.json()
 }
 

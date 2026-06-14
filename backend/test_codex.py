@@ -291,6 +291,48 @@ def test_gemini_edit_interleaves_image_labels():
     assert out == _PNG_MAGIC
 
 
+# ---------- vision: detect_region + critique_image (codex là model vision) ----------
+
+def test_codex_supports_critique():
+    assert OpenAICodexProvider.supports_critique() is True
+
+
+def test_codex_detect_region_parses_and_sends_image():
+    p = OpenAICodexProvider()
+    captured = {}
+
+    def fake_stream(body, parse):
+        captured["body"] = body
+        return '{"found": true, "box": [100, 200, 400, 600]}'
+
+    p._stream_request = fake_stream
+    box = p.detect_region(b"imgbytes", "con bò")
+    # toạ độ 0..999 → chuẩn hóa 0..1
+    assert abs(box[0] - 100 / 999) < 1e-6 and abs(box[3] - 600 / 999) < 1e-6
+    # request gửi kèm ẢNH (input_image) + instruction
+    content = captured["body"]["input"][0]["content"]
+    assert any(c["type"] == "input_image" for c in content)
+    assert any(c["type"] == "input_text" for c in content)
+
+
+def test_codex_critique_image_parses():
+    p = OpenAICodexProvider()
+    p._stream_request = lambda body, parse: '{"score": 6, "passed": false, "feedback": "đổi nền"}'
+    d = p.critique_image(b"imgbytes", "vẽ mèo phi hành gia")
+    assert d["score"] == 6.0 and d["passed"] is False and "nền" in d["feedback"]
+
+
+def test_codex_detect_region_not_found_raises():
+    from app.providers.base import ProviderError
+    p = OpenAICodexProvider()
+    p._stream_request = lambda body, parse: '{"found": false}'
+    try:
+        p.detect_region(b"img", "con bò")
+        assert False, "không thấy phải lỗi"
+    except ProviderError:
+        pass
+
+
 if __name__ == "__main__":
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_") and callable(v)]
     passed = 0

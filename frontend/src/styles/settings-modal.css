@@ -3,7 +3,7 @@
   position: fixed;
   inset: 0;
   z-index: 50;
-  background: rgba(8, 9, 14, 0.6);
+  background: var(--overlay-scrim);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
@@ -31,6 +31,27 @@
 }
 .modal-title { display: inline-flex; align-items: center; gap: 8px; }
 .modal-hint { font-size: 12px; color: var(--text-dim); line-height: 1.5; margin: 0 0 14px; }
+
+/* ---------- Thanh tab modal cài đặt (Giao diện | Model) ---------- */
+.settings-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--border);
+  margin: 4px 0 16px;
+}
+.settings-tab-btn {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-dim);
+  padding: 8px 14px;
+  font-size: 12.5px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.settings-tab-btn:hover:not(.active) { color: var(--text); }
+.settings-tab-btn.active { color: var(--text); border-bottom-color: var(--accent); font-weight: 600; }
 
 /* ---------- Section trong modal cài đặt ---------- */
 .settings-section { margin-bottom: 18px; }
@@ -66,6 +87,33 @@
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
+/* Segmented control chọn theme (Hệ thống / Sáng / Tối) */
+.theme-seg {
+  display: inline-flex;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+  gap: 2px;
+}
+.theme-seg-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  border-radius: calc(var(--radius-sm) - 2px);
+  padding: 5px 12px;
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.theme-seg-btn:hover:not(.active) { color: var(--text); }
+.theme-seg-btn.active {
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
 }
 
 .config-table {
@@ -142,9 +190,20 @@
 .oauth-hint { font-size: 11px; color: var(--text-faint); line-height: 1.5; margin: 0; }
 .config-error {
   padding: 8px 11px;
-  background: rgba(248, 113, 113, 0.08);
-  border: 1px solid rgba(248, 113, 113, 0.35);
+  background: color-mix(in srgb, var(--err) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--err) 35%, transparent);
   border-radius: var(--radius-sm);
   font-size: 12px;
   color: var(--err);
+}
+
+/* ---------- Dropdown model hybrid (static + tải từ API + nhập tay) ---------- */
+.model-field { display: flex; gap: 6px; align-items: center; }
+.model-field select { flex: 1; min-width: 0; }
+.model-field .btn { flex: 0 0 auto; padding: 6px 9px; }
+.model-field-error {
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--err);
+  line-height: 1.5;
 }

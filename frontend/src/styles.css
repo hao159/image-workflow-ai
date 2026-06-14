@@ -5,56 +5,142 @@
 @import './styles/react-flow-overrides.css';
 @import './styles/connect-menu.css';
 @import './styles/image-viewer-modal.css';
+@import './styles/workflow-browser-modal.css';
 
-/* ---------- Design tokens ---------- */
+/* ---------- Design tokens ----------
+   Token chia 3 lớp:
+   1) :root          → giá trị độc lập theme (radius, font).
+   2) :root, [dark]  → bộ màu Tối (mặc định khi chưa set data-theme).
+   3) [light]        → bộ màu Sáng (override khi <html data-theme="light">).
+   Tên token ngữ nghĩa giữ nguyên giữa 2 theme → component CSS không phải đổi. */
 :root {
+  /* Radius vừa phải — phẳng, chuyên nghiệp (giảm cảm giác "bo tròn mềm" kiểu AI) */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+
+  --font: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+/* ----- Theme TỐI (mặc định) ----- */
+:root,
+:root[data-theme='dark'] {
   /* surfaces */
-  --bg-app: #101117;
-  --bg-canvas: #14151d;
-  --bg-panel: #181922;
-  --bg-raised: #1f202c;
-  --bg-input: #13141c;
-  --bg-hover: #262736;
+  --bg-app: #0f1115;
+  --bg-canvas: #12141a;
+  --bg-panel: #171a21;
+  --bg-raised: #1e222b;
+  --bg-input: #12141a;
+  --bg-hover: #252a35;
 
   /* lines */
-  --border: #272836;
-  --border-strong: #34354a;
+  --border: #262b35;
+  --border-strong: #363c49;
 
   /* text */
-  --text: #e9eaf2;
-  --text-dim: #9b9db4;
-  --text-faint: #686b85;
+  --text: #e7e9ef;
+  --text-dim: #9aa0b0;
+  --text-faint: #6b7080;
 
-  /* brand — accent solid, không dùng gradient (bản sắc phẳng, hình học) */
-  --accent: #7c5cff;
-  --accent-hover: #8d70ff;
-  --accent-soft: rgba(124, 92, 255, 0.18);
+  /* brand — accent xanh dương dịu, phẳng (không gradient, không neon tím) */
+  --accent: #3b6cf0;
+  --accent-hover: #5680ff;
+  --accent-soft: rgba(59, 108, 240, 0.18);
 
   /* status */
-  --ok: #34d399;
-  --err: #f87171;
-  --run: #38bdf8;
+  --ok: #3ba776;
+  --err: #e5575f;
+  --run: #3b82d6;
+  --warn: #d99a3c;
 
-  /* node categories */
-  --cat-input: #34d399;
-  --cat-ai: #a78bfa;
-  --cat-transform: #fbbf24;
-  --cat-output: #38bdf8;
-  --cat-misc: #94a3b8;
+  /* node categories — giảm bão hòa, AI bỏ tím */
+  --cat-input: #4cae8a;
+  --cat-ai: #5b8def;
+  --cat-transform: #c79a4b;
+  --cat-output: #4f93c9;
+  --cat-misc: #8b91a1;
 
   /* màu handle theo kiểu dữ liệu cổng */
-  --dtype-image: #fbbf24;
-  --dtype-text: #34d399;
+  --dtype-image: #c79a4b;
+  --dtype-text: #4cae8a;
 
-  --radius-sm: 7px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
+  /* overlay/scrim sau modal + icon-btn overlay */
+  --overlay-scrim: rgba(8, 9, 14, 0.6);
+
+  /* badges (cache ⚡, cổng "đã nối") */
+  --badge-cache-bg: rgba(214, 158, 46, 0.16);
+  --badge-cache-fg: #e0a84a;
+  --badge-port-bg: rgba(76, 174, 138, 0.16);
+  --badge-port-fg: #4cae8a;
+
+  /* react flow: dây nối + lưới nền */
+  --edge: #5a6072;
+  --edge-hover: #828aa0;
+  --rf-grid: #262b35;
 
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.35);
   --shadow-md: 0 8px 28px rgba(0, 0, 0, 0.45);
   --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.55);
+}
 
-  --font: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+/* ----- Theme SÁNG ----- */
+:root[data-theme='light'] {
+  /* surfaces */
+  --bg-app: #f5f6f8;
+  --bg-canvas: #eceef2;
+  --bg-panel: #ffffff;
+  --bg-raised: #f5f6f8;
+  --bg-input: #ffffff;
+  --bg-hover: #e9ecf1;
+
+  /* lines */
+  --border: #e2e5ea;
+  --border-strong: #cdd2db;
+
+  /* text */
+  --text: #1c1e26;
+  --text-dim: #5a6072;
+  --text-faint: #8b91a1;
+
+  /* brand */
+  --accent: #3257d6;
+  --accent-hover: #2546bf;
+  --accent-soft: rgba(50, 87, 214, 0.12);
+
+  /* status */
+  --ok: #1f9d6b;
+  --err: #d23b46;
+  --run: #2f6fc4;
+  --warn: #b87514;
+
+  /* node categories */
+  --cat-input: #2f9d76;
+  --cat-ai: #3257d6;
+  --cat-transform: #b07d20;
+  --cat-output: #2f6fc4;
+  --cat-misc: #6b7280;
+
+  /* handle theo kiểu dữ liệu */
+  --dtype-image: #b07d20;
+  --dtype-text: #2f9d76;
+
+  /* overlay/scrim */
+  --overlay-scrim: rgba(30, 35, 50, 0.35);
+
+  /* badges */
+  --badge-cache-bg: rgba(176, 117, 20, 0.14);
+  --badge-cache-fg: #9a6510;
+  --badge-port-bg: rgba(31, 157, 107, 0.14);
+  --badge-port-fg: #1f7d56;
+
+  /* react flow */
+  --edge: #aab0be;
+  --edge-hover: #7c8395;
+  --rf-grid: #dfe3ea;
+
+  --shadow-sm: 0 1px 3px rgba(20, 30, 60, 0.08);
+  --shadow-md: 0 6px 20px rgba(20, 30, 60, 0.1);
+  --shadow-lg: 0 16px 40px rgba(20, 30, 60, 0.16);
 }
 
 * { box-sizing: border-box; }
@@ -103,11 +189,9 @@ html, body, #root {
   color: #fff;
   font-weight: 600;
   padding: 8px 16px;
-  box-shadow: 0 2px 12px var(--accent-soft);
 }
 .btn.primary:hover:not(:disabled) {
   background: var(--accent-hover);
-  box-shadow: 0 2px 18px rgba(124, 92, 255, 0.4);
 }
 
 .btn.ghost { background: transparent; border-color: transparent; color: var(--text-dim); }
@@ -116,7 +200,7 @@ html, body, #root {
 .btn.danger:hover:not(:disabled) {
   border-color: var(--err);
   color: var(--err);
-  background: rgba(248, 113, 113, 0.08);
+  background: color-mix(in srgb, var(--err) 8%, transparent);
 }
 
 /* ---------- Icon button nhỏ (overlay trên preview, card file) ---------- */
@@ -127,7 +211,7 @@ html, body, #root {
   height: 24px;
   flex-shrink: 0;
   border-radius: 6px;
-  background: rgba(10, 11, 18, 0.55);
+  background: var(--overlay-scrim);
   border: 1px solid var(--border-strong);
   color: var(--text-dim);
   cursor: pointer;
@@ -136,7 +220,7 @@ html, body, #root {
 .icon-btn:hover:not(:disabled) {
   color: var(--text);
   border-color: var(--accent);
-  background: rgba(10, 11, 18, 0.8);
+  background: var(--overlay-scrim);
 }
 .icon-btn:disabled { opacity: 0.4; cursor: default; }
 
@@ -145,7 +229,7 @@ html, body, #root {
   width: 12px;
   height: 12px;
   flex-shrink: 0;
-  border: 2px solid rgba(56, 189, 248, 0.25);
+  border: 2px solid color-mix(in srgb, var(--run) 25%, transparent);
   border-top-color: var(--run);
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
