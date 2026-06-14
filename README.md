@@ -19,6 +19,8 @@ mỗi node là một bước (prompt → tạo ảnh → sửa ảnh → biến 
 
 > Chọn model: ô **Model** trong ⚙ Cài đặt là dropdown — có sẵn danh sách model curated theo provider; bấm **⟳** để tải danh sách model thật từ API (Gemini / OpenAI / checkpoint ComfyUI); hoặc chọn **✎ Nhập tay** để gõ tên model tự do. Bỏ trống = model mặc định của provider.
 
+> Giao diện sáng/tối: **⚙ Cài đặt → Giao diện → Nền sáng/tối** chọn **Hệ thống / Sáng / Tối**. "Hệ thống" bám theo theme của OS (đổi realtime); lựa chọn được nhớ qua localStorage. Phong cách trung tính, phẳng (không glow/sparkles). Ô **Hiệu ứng node đang chạy** mặc định **Phẳng**; còn các hiệu ứng động (viền sáng / thanh quét / nhịp đập) là tùy chọn.
+
 ## Cài đặt
 
 ```powershell

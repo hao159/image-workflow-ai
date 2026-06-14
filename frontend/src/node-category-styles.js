@@ -1,11 +1,13 @@
 // Icon SVG + màu + hiệu ứng chạy mặc định theo nhóm node — dùng chung cho
 // Palette (sidebar) và WorkflowNode (canvas). Tên nhóm phải khớp `category`
 // trong metadata node ở backend (backend/app/nodes/).
-import { ImportIcon, ExportIcon, SparklesIcon, SlidersIcon, WrenchIcon } from './components/icons.jsx'
+import { ImportIcon, ExportIcon, WandIcon, SlidersIcon, WrenchIcon } from './components/icons.jsx'
 
+// runEffect ở đây chỉ áp khi người dùng chọn chế độ hiệu ứng "auto" (nâng cao).
+// Mặc định toàn app là 'solid' (chỉ báo phẳng) — xem ui-settings.js.
 export const CATEGORY_STYLES = {
   'Đầu vào': { Icon: ImportIcon, color: 'var(--cat-input)', runEffect: 'glow' },
-  AI: { Icon: SparklesIcon, color: 'var(--cat-ai)', runEffect: 'scan' },
+  AI: { Icon: WandIcon, color: 'var(--cat-ai)', runEffect: 'scan' },
   'Biến đổi': { Icon: SlidersIcon, color: 'var(--cat-transform)', runEffect: 'pulse' },
   'Đầu ra': { Icon: ExportIcon, color: 'var(--cat-output)', runEffect: 'glow' },
 }

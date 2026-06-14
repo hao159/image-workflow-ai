@@ -6,7 +6,14 @@ import {
   saveModelConfig,
   startOpenAIOAuth,
 } from '../api.js'
-import { getRunEffect, setRunEffect, RUN_EFFECT_OPTIONS } from '../ui-settings.js'
+import {
+  getRunEffect,
+  setRunEffect,
+  RUN_EFFECT_OPTIONS,
+  getThemeSetting,
+  setThemeSetting,
+  THEME_OPTIONS,
+} from '../ui-settings.js'
 import { GearIcon, PlusIcon, SaveIcon, XIcon } from './icons.jsx'
 import ModelField from './model-field.jsx'
 
@@ -26,6 +33,8 @@ export default function SettingsModal({ onClose, onChanged }) {
   const [saving, setSaving] = useState(false)
   // Setting giao diện (lưu localStorage, áp dụng ngay lần chạy kế tiếp)
   const [runEffect, setRunEffectState] = useState(getRunEffect)
+  // Theme sáng/tối — đổi là áp ngay lên <html> (không cần reload)
+  const [theme, setThemeState] = useState(getThemeSetting)
   // Trạng thái đăng nhập OpenAI (Codex OAuth)
   const [oauthStatus, setOauthStatus] = useState(null)
   const [loggingIn, setLoggingIn] = useState(false)
@@ -93,6 +102,24 @@ export default function SettingsModal({ onClose, onChanged }) {
 
         <div className="settings-section">
           <div className="settings-section-title">Giao diện</div>
+          <div className="settings-row">
+            <span>Nền sáng/tối</span>
+            <div className="theme-seg" role="group" aria-label="Chọn nền sáng/tối">
+              {THEME_OPTIONS.map((o) => (
+                <button
+                  key={o.value}
+                  type="button"
+                  className={`theme-seg-btn${theme === o.value ? ' active' : ''}`}
+                  onClick={() => {
+                    setThemeSetting(o.value)
+                    setThemeState(o.value)
+                  }}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          </div>
           <label className="settings-row">
             <span>Hiệu ứng node đang chạy</span>
             <select

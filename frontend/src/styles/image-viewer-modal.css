@@ -3,6 +3,8 @@
   position: fixed;
   inset: 0;
   z-index: 100; /* trên SettingsModal (z-index 50) + ConnectMenu */
+  /* Lightbox luôn nền tối ở CẢ 2 theme (xem ảnh cần nền tối bao quanh, scrim
+     sáng sẽ làm ảnh nhợt) — đây là giá trị cố định có chủ đích, không phải lỗi theme. */
   background: rgba(8, 9, 14, 0.85);
   backdrop-filter: blur(6px);
   display: flex;

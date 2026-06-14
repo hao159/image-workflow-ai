@@ -2,8 +2,8 @@
 .react-flow { background: var(--bg-canvas); }
 
 /* Dây nối — tăng độ sáng/độ dày để dễ thấy trên nền tối */
-.react-flow__edge-path { stroke: #767b9e; stroke-width: 2.2; }
-.react-flow__edge:hover .react-flow__edge-path { stroke: #a0a4c4; }
+.react-flow__edge-path { stroke: var(--edge); stroke-width: 2.2; }
+.react-flow__edge:hover .react-flow__edge-path { stroke: var(--edge-hover); }
 .react-flow__edge.selected .react-flow__edge-path { stroke: var(--accent); stroke-width: 2.6; }
 /* dây đang chạy workflow (edge animated): đổi màu + nét chạy "kiến bò" */
 .react-flow__edge.animated .react-flow__edge-path { stroke: var(--run); stroke-width: 2.4; }
@@ -34,7 +34,7 @@
 .wf-edge-delete:hover {
   color: var(--err);
   border-color: var(--err);
-  background: rgba(248, 113, 113, 0.12);
+  background: color-mix(in srgb, var(--err) 12%, var(--bg-panel));
 }
 
 /* Nút điều khiển zoom/fit */
@@ -63,7 +63,7 @@
   overflow: hidden;
   box-shadow: var(--shadow-sm);
 }
-.react-flow__minimap-mask { fill: rgba(16, 17, 23, 0.72); }
+.react-flow__minimap-mask { fill: var(--overlay-scrim); }
 .react-flow__minimap-node { fill: var(--bg-hover); }
 
 .react-flow__attribution { background: transparent; color: var(--text-faint); }

@@ -36,6 +36,7 @@ import {
   openRunSocket,
   saveWorkflow,
 } from './api.js'
+import { resolveTheme } from './ui-settings.js'
 
 const nodeTypes = { wf: WorkflowNode }
 const edgeTypes = { deletable: DeletableEdge }
@@ -62,8 +63,24 @@ export default function App() {
   const [harnessReport, setHarnessReport] = useState(null)
   // Khi kéo dây thả ra khoảng trống → mở menu chọn node để tạo + tự nối.
   const [connectMenu, setConnectMenu] = useState(null)
+  // Theme hiện tại ('light'|'dark') để React Flow đổi colorMode + màu lưới nền
+  // theo Sáng/Tối. Nghe sự kiện 'iw-theme-change' (phát từ ui-settings.applyTheme).
+  const [theme, setTheme] = useState(resolveTheme)
   const { screenToFlowPosition, updateNodeData } = useReactFlow()
   const wsRef = useRef(null)
+
+  useEffect(() => {
+    const onThemeChange = (e) => setTheme(e.detail?.theme || resolveTheme())
+    window.addEventListener('iw-theme-change', onThemeChange)
+    return () => window.removeEventListener('iw-theme-change', onThemeChange)
+  }, [])
+
+  // React Flow <Background> nhận màu trực tiếp (không qua CSS var) → đọc token
+  // --rf-grid đã đổi theo theme từ computed style, tính lại mỗi khi theme đổi.
+  const gridColor = useMemo(() => {
+    if (typeof window === 'undefined') return '#262b35'
+    return getComputedStyle(document.documentElement).getPropertyValue('--rf-grid').trim() || '#262b35'
+  }, [theme])
 
   const metaByType = useMemo(
     () => Object.fromEntries(nodeTypeMetas.map((m) => [m.type, m])),
@@ -625,10 +642,10 @@ export default function App() {
             }}
             fitView
             deleteKeyCode={['Delete', 'Backspace']}
-            colorMode="dark"
+            colorMode={theme}
             defaultEdgeOptions={{ type: 'deletable', style: { strokeWidth: 1.8 } }}
           >
-            <Background gap={22} size={1.4} color="#272838" />
+            <Background gap={22} size={1.4} color={gridColor} />
             <Controls />
             <MiniMap pannable zoomable />
           </ReactFlow>
