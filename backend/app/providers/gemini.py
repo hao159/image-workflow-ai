@@ -1,5 +1,6 @@
 from .. import config
-from .base import ImageProvider, ProviderError, numbered_image_caption
+from .base import (ImageProvider, ProviderError, numbered_image_caption,
+                  parse_bbox_json, parse_critique_json)
 
 DEFAULT_MODEL = "gemini-2.5-flash-image"
 # Model cho sinh text (enhance prompt...). Model "-image" chỉ trả ảnh nên
@@ -69,8 +70,6 @@ class GeminiProvider(ImageProvider):
 
         Dùng model vision TEXT (model "-image" chỉ trả ảnh → tự swap). Ép JSON qua
         response_mime_type. Parse robust; lỗi → ProviderError rõ."""
-        import json
-
         from google.genai import types
         client = self._get_client()
         use_model = model or TEXT_DEFAULT_MODEL
@@ -90,21 +89,7 @@ class GeminiProvider(ImageProvider):
             config=types.GenerateContentConfig(
                 response_modalities=["TEXT"], response_mime_type="application/json"),
         )
-        text = (getattr(response, "text", None) or "").strip()
-        if not text:
-            raise ProviderError("Gemini critic không trả về kết quả.")
-        try:
-            data = json.loads(text)
-        except json.JSONDecodeError:  # bóc cụm {...} đầu tiên nếu có rác bao quanh
-            start, end = text.find("{"), text.rfind("}")
-            if start < 0 or end <= start:
-                raise ProviderError(f"Gemini critic trả JSON sai: {text[:200]}")
-            data = json.loads(text[start:end + 1])
-        return {
-            "score": float(data.get("score") or 0.0),
-            "passed": bool(data.get("passed")),
-            "feedback": str(data.get("feedback") or ""),
-        }
+        return parse_critique_json(getattr(response, "text", None) or "")
 
     def detect_region(self, image: bytes, target: str, *, model: str = "",
                       **options) -> list[float]:
@@ -112,8 +97,6 @@ class GeminiProvider(ImageProvider):
 
         Dùng model vision TEXT (model "-image" chỉ trả ảnh → tự swap). Ép JSON. Không
         thấy → ProviderError rõ; JSON sai → ProviderError."""
-        import json
-
         from google.genai import types
         client = self._get_client()
         use_model = model or TEXT_DEFAULT_MODEL
@@ -131,20 +114,9 @@ class GeminiProvider(ImageProvider):
             config=types.GenerateContentConfig(
                 response_modalities=["TEXT"], response_mime_type="application/json"),
         )
-        text = (getattr(response, "text", None) or "").strip()
-        if not text:
-            raise ProviderError("Gemini không trả về kết quả trích vùng.")
-        try:
-            data = json.loads(text)
-        except json.JSONDecodeError:
-            start, end = text.find("{"), text.rfind("}")
-            if start < 0 or end <= start:
-                raise ProviderError(f"Gemini trả JSON trích vùng sai: {text[:200]}")
-            data = json.loads(text[start:end + 1])
-        if not data.get("found", True) or "box" not in data:
-            raise ProviderError(
-                f"Không tìm thấy '{target}' trong ảnh. Thử mô tả khác hoặc ảnh rõ hơn.")
-        return [float(v) for v in data["box"]]
+        # Gemini trả toạ độ 0..1 → scale=1.0
+        return parse_bbox_json(getattr(response, "text", None) or "",
+                               scale=1.0, target=target)
 
     def edit(self, images: list[bytes], prompt: str, *, model: str = "",
              image_labels: list[str] | None = None, **options) -> bytes:

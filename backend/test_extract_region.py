@@ -11,7 +11,8 @@ from PIL import Image
 
 from app.nodes import extract_region as er_module
 from app.nodes.extract_region import ExtractRegionNode, crop_region
-from app.providers.base import ImageProvider, ProviderError
+from app.providers.base import (ImageProvider, ProviderError,
+                                parse_bbox_json, parse_critique_json)
 
 
 def _png(w, h, color=(120, 80, 200)):
@@ -109,6 +110,41 @@ def test_node_provider_without_detect_region_errors():
         assert False, "provider không hỗ trợ detect_region phải lỗi"
     except ProviderError as e:
         assert "trích vùng" in str(e) or "detect" in str(e).lower()
+
+
+# ---------- parse helpers (pure, dùng chung gemini + openai) ----------
+
+def test_parse_bbox_normalized():
+    assert parse_bbox_json('{"found":true,"box":[0.1,0.2,0.3,0.4]}', scale=1.0) == [0.1, 0.2, 0.3, 0.4]
+
+
+def test_parse_bbox_scaled_999():
+    out = parse_bbox_json('{"found":true,"box":[100,200,400,600]}', scale=999.0)
+    assert abs(out[0] - 100 / 999) < 1e-6 and abs(out[3] - 600 / 999) < 1e-6
+
+
+def test_parse_bbox_strips_fences():
+    out = parse_bbox_json('```json\n{"found":true,"box":[0,0,1,1]}\n```', scale=1.0)
+    assert out == [0.0, 0.0, 1.0, 1.0]
+
+
+def test_parse_bbox_not_found_or_invalid_raises():
+    for t in ['{"found":false}', '{"box":null}', 'garbage', '{"found":true,"box":[0,0,1]}']:
+        try:
+            parse_bbox_json(t, scale=1.0, target="mèo")
+            assert False, f"{t} phải lỗi"
+        except ProviderError:
+            pass
+
+
+def test_parse_critique_basic():
+    d = parse_critique_json('{"score":7.5,"passed":false,"feedback":"sửa nền"}')
+    assert d["score"] == 7.5 and d["passed"] is False and "nền" in d["feedback"]
+
+
+def test_parse_critique_fences_and_defaults():
+    d = parse_critique_json('```\n{"score":9}\n```')
+    assert d["score"] == 9.0 and d["feedback"] == "" and d["passed"] is False
 
 
 def test_node_params_present():
