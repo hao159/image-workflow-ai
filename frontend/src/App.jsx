@@ -11,6 +11,7 @@ import {
 } from '@xyflow/react'
 import Palette from './components/Palette.jsx'
 import SettingsModal from './components/SettingsModal.jsx'
+import WorkflowBrowserModal from './components/workflow-browser-modal.jsx'
 import WorkflowNode from './components/WorkflowNode.jsx'
 import DeletableEdge from './components/DeletableEdge.jsx'
 import ConnectNodeMenu from './components/ConnectNodeMenu.jsx'
@@ -53,7 +54,7 @@ export default function App() {
   const [runningNodeId, setRunningNodeId] = useState(null)
   const [statusMsg, setStatusMsg] = useState('')
   const [showSettings, setShowSettings] = useState(false)
-  const [showWorkflows, setShowWorkflows] = useState(false)
+  const [showWorkflowBrowser, setShowWorkflowBrowser] = useState(false)
   // Harness mode (chạy lặp critic-refine): cấu hình + nhật ký iteration + report
   const [harnessCfg, setHarnessCfg] = useState({
     max_iterations: 3, pass_score: 8, criteria: '', critic_provider: '',
@@ -435,15 +436,26 @@ export default function App() {
   // Giá trị context cho WorkflowNode (▶ node + biết trạng thái bận để disable).
   const runCtx = useMemo(() => ({ runNode, runningNodeId, running }), [runNode, runningNodeId, running])
 
-  const save = useCallback(async () => {
+  const doSave = useCallback(async (overwrite) => {
     try {
-      const { saved } = await saveWorkflow(buildPayload())
+      const { saved } = await saveWorkflow(buildPayload(), { overwrite })
       setStatusMsg(`Đã lưu "${saved}"`)
       setSavedList(await listWorkflows())
     } catch (e) {
+      // Backend trả 409 (tên đã tồn tại) → hỏi xác nhận ghi đè rồi lưu lại.
+      if (e.code === 'exists') {
+        if (confirm(`Workflow "${workflowName}" đã tồn tại. Ghi đè?`)) {
+          await doSave(true)
+        } else {
+          setStatusMsg('Đã hủy lưu')
+        }
+        return
+      }
       setStatusMsg(`✗ ${e.message}`)
     }
-  }, [buildPayload])
+  }, [buildPayload, workflowName])
+
+  const save = useCallback(() => doSave(false), [doSave])
 
   const removeWorkflow = useCallback(async (name) => {
     if (!confirm(`Xóa workflow "${name}"?`)) return
@@ -484,7 +496,7 @@ export default function App() {
           })),
         )
         setStatusMsg(`Đã tải "${name}"`)
-        setShowWorkflows(false)
+        setShowWorkflowBrowser(false)
       } catch (e) {
         setStatusMsg(`✗ ${e.message}`)
       }
@@ -555,28 +567,12 @@ export default function App() {
           <button className="btn" onClick={save} disabled={nodes.length === 0}>
             <SaveIcon size={14} /> Lưu
           </button>
-          <div className="wf-menu">
-            <button className="btn" onClick={() => setShowWorkflows((s) => !s)}>
-              <FolderIcon size={14} /> Workflows
-              <ChevronDownIcon size={12} className={`chev${showWorkflows ? ' open' : ''}`} />
-            </button>
-            {showWorkflows && (
-              <div className="wf-menu-panel">
-                {savedList.length === 0 && <div className="wf-menu-empty">Chưa có workflow nào.</div>}
-                {savedList.map((wf) => (
-                  <div className="wf-menu-item" key={wf.name}>
-                    <button className="wf-menu-open" title={`Cập nhật: ${wf.updated_at}`} onClick={() => load(wf.name)}>
-                      <span className="wf-menu-name">{wf.name}</span>
-                      <span className="wf-menu-date">{wf.updated_at}</span>
-                    </button>
-                    <button className="btn ghost danger" title="Xóa workflow" onClick={() => removeWorkflow(wf.name)}>
-                      <TrashIcon size={13} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          <button
+            className="btn"
+            onClick={() => { listWorkflows().then(setSavedList).catch(() => {}); setShowWorkflowBrowser(true) }}
+          >
+            <FolderIcon size={14} /> Mở workflow
+          </button>
           <button className="btn" onClick={() => setShowSettings(true)}>
             <GearIcon size={14} /> Cài đặt
           </button>
@@ -655,6 +651,14 @@ export default function App() {
         <SettingsModal
           onClose={() => setShowSettings(false)}
           onChanged={() => refreshNodeTypes().catch(() => {})}
+        />
+      )}
+      {showWorkflowBrowser && (
+        <WorkflowBrowserModal
+          workflows={savedList}
+          onLoad={load}
+          onDelete={removeWorkflow}
+          onClose={() => setShowWorkflowBrowser(false)}
         />
       )}
       {connectMenu && (

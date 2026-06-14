@@ -1,5 +1,6 @@
 import json
 import re
+import time
 import traceback
 import uuid
 from typing import Optional
@@ -213,8 +214,11 @@ def get_workflow(name: str):
 
 
 @app.post("/api/workflows")
-def save_workflow(workflow: Workflow):
+def save_workflow(workflow: Workflow, overwrite: bool = False):
     name = workflow.name.strip() or "untitled"
+    # Trùng tên & chưa bật ghi đè → 409 để frontend hỏi xác nhận (tránh đè ngầm).
+    if not overwrite and db.workflow_exists(name):
+        return JSONResponse({"error": "exists", "name": name}, status_code=409)
     db.save_workflow(name, workflow.model_dump())
     return {"saved": name}
 
@@ -224,6 +228,36 @@ def delete_workflow(name: str):
     if not db.delete_workflow(name):
         return JSONResponse({"error": "Không tìm thấy workflow."}, status_code=404)
     return {"deleted": name}
+
+
+# ---------- Lịch sử thực thi (exec history) ----------
+
+@app.get("/api/workflows/{name}/executions")
+def list_workflow_executions(name: str, page: int = 1, size: int = 10):
+    page = max(1, page)
+    size = max(1, min(size, 100))
+    rows, total = db.list_executions(name, size, (page - 1) * size)
+    return {"items": rows, "total": total, "page": page, "size": size}
+
+
+@app.get("/api/executions/{exec_id}")
+def get_workflow_execution(exec_id: int):
+    rec = db.get_execution(exec_id)
+    if rec is None:
+        return JSONResponse({"error": "Không tìm thấy bản ghi thực thi."}, status_code=404)
+    return rec
+
+
+@app.delete("/api/executions/{exec_id}")
+def delete_workflow_execution(exec_id: int):
+    if not db.delete_execution(exec_id):
+        return JSONResponse({"error": "Không tìm thấy bản ghi thực thi."}, status_code=404)
+    return {"deleted": exec_id}
+
+
+@app.delete("/api/workflows/{name}/executions")
+def clear_workflow_executions(name: str):
+    return {"cleared": db.clear_executions(name)}
 
 
 @app.post("/api/cache/clear")
@@ -258,17 +292,74 @@ async def ws_run(ws: WebSocket):
                 type="run_error", message=f"Workflow không hợp lệ: {e}").model_dump_json())
             return
 
+        # Chỉ ghi lịch sử cho ▶ Chạy (full) và ▶ Harness — KHÔNG ghi chạy 1 node lẻ
+        # (target≠None & không harness) để lịch sử sạch.
+        if harness is not None and getattr(harness, "enabled", False):
+            record_mode = "harness"
+        elif target is None:
+            record_mode = "full"
+        else:
+            record_mode = None
+
+        # Gom dữ liệu run để lưu DB: trạng thái từng node, sha ảnh kết quả, điểm harness.
+        nodes_status: dict[str, str] = {}
+        output_refs: list[str] = []
+        harness_iters: list[dict] = []
+        harness_best: dict = {}
+        outcome = {"status": "running", "error": ""}  # cập nhật khi run_finished/run_error
+
+        def _record(event: RunEvent):
+            if event.type == "node_started" and event.node_id:
+                nodes_status[event.node_id] = "running"
+            elif event.type == "node_finished" and event.node_id:
+                nodes_status[event.node_id] = "done"
+                for meta in (event.outputs or {}).values():
+                    if isinstance(meta, dict) and meta.get("dtype") == "image" \
+                            and meta.get("sha") and meta["sha"] not in output_refs:
+                        output_refs.append(meta["sha"])
+            elif event.type == "node_error" and event.node_id:
+                nodes_status[event.node_id] = "error"
+            elif event.type == "harness_iteration":
+                harness_iters.append({
+                    "iteration": event.iteration, "score": event.score,
+                    "passed": event.passed, "feedback": event.message or "",
+                })
+            elif event.type == "harness_report" and event.report:
+                harness_best.update(event.report)
+            elif event.type == "run_finished":
+                outcome["status"] = "success"
+            elif event.type == "run_error":
+                outcome["status"] = "error"
+                outcome["error"] = event.message or ""
+
         async def emit(event: RunEvent):
+            if record_mode:
+                _record(event)
             await ws.send_text(event.model_dump_json(exclude_none=True))
 
+        exec_id = db.create_execution(
+            workflow.name.strip() or "untitled", record_mode) if record_mode else None
+        started = time.monotonic()
         try:
-            await run_workflow(workflow, emit, target=target, force_ids=force,
-                               harness=harness)
-        except WebSocketDisconnect:
-            raise
-        except Exception as e:  # noqa: BLE001 — lỗi engine ngoài dự kiến phải về UI
-            traceback.print_exc()
-            await emit(RunEvent(type="run_error", message=f"Lỗi nội bộ server: {e}"))
+            try:
+                await run_workflow(workflow, emit, target=target, force_ids=force,
+                                   harness=harness)
+            except WebSocketDisconnect:
+                raise
+            except Exception as e:  # noqa: BLE001 — lỗi engine ngoài dự kiến phải về UI
+                traceback.print_exc()
+                outcome["status"], outcome["error"] = "error", str(e)
+                await emit(RunEvent(type="run_error", message=f"Lỗi nội bộ server: {e}"))
+        finally:
+            # Chốt bản ghi kể cả khi client ngắt giữa chừng (status còn 'running' → 'stopped').
+            if exec_id is not None:
+                if outcome["status"] == "running":
+                    outcome["status"] = "stopped"
+                detail = {"nodes": nodes_status, "output_refs": output_refs,
+                          "harness": {**harness_best, "iterations": harness_iters}
+                          if (harness_iters or harness_best) else {}}
+                db.finish_execution(exec_id, outcome["status"], outcome["error"],
+                                    detail, int((time.monotonic() - started) * 1000))
     except WebSocketDisconnect:
         pass
     finally:

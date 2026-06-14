@@ -80,7 +80,20 @@ trên node chỉ là thumbnail nhẹ để hiển thị nhanh). Node Tải ảnh
 
 `Prompt("một chú mèo phi hành gia") → Tạo ảnh (gemini) → Sửa ảnh ("đổi nền thành sao Hỏa") → Resize → Lưu ảnh`
 
-Workflow mẫu có sẵn trong `workflows/` — bấm **📂 Mở...** trên thanh công cụ để tải.
+Workflow mẫu có sẵn trong `workflows/` — bấm **📂 Mở workflow** trên thanh công cụ để tải.
+
+## Mở workflow & lịch sử chạy
+
+Nút **📂 Mở workflow** mở modal giữa màn hình với 2 tab:
+
+- **Danh sách:** workflow đã lưu (có **phân trang**), mỗi dòng **Tải** vào canvas hoặc **Xóa**. Bấm 🕘 để xem lịch sử chạy của workflow đó.
+- **Lịch sử:** các lần chạy gần đây kiểu n8n — badge trạng thái (✓ thành công / ✗ lỗi / ⏹ đã dừng), thời điểm, thời lượng, chế độ (full/harness). Bấm 1 dòng để xem **chi tiết**: ảnh kết quả (mở full-res), trạng thái từng node, các vòng harness (điểm + phản hồi), thông báo lỗi. Xóa từng lần chạy hoặc xóa hết.
+
+> **Ghi lịch sử:** chỉ ghi cho **▶ Chạy** (full) và **▶ Harness** — KHÔNG ghi khi chạy 1 node lẻ (▶ trên node), để lịch sử sạch. Mỗi workflow giữ **50 bản ghi gần nhất** (tự dọn bản cũ). Ảnh không nhân đôi — chỉ tham chiếu sha vào cache blob; nếu ảnh đã bị dọn khỏi cache, chi tiết hiện "ảnh đã bị dọn".
+
+> **Lưu trùng tên:** bấm **Lưu** khi tên workflow đã tồn tại → hỏi **xác nhận ghi đè**. Đồng ý mới ghi đè; hủy thì giữ nguyên. Tên mới lưu thẳng không hỏi.
+
+> **Cài đặt theo tab:** modal **⚙ Cài đặt** chia 2 tab **Giao diện | Model** (mở mặc định ở tab Model). Đổi tab không mất dữ liệu form đang nhập.
 
 ## Mô tả ảnh → phân biệt ảnh trong node Sửa ảnh (Ảnh 1 / Ảnh 2)
 

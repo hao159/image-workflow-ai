@@ -36,6 +36,19 @@ def init_db() -> None:
                 data       TEXT NOT NULL,
                 updated_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
             );
+            CREATE TABLE IF NOT EXISTS workflow_executions (
+                id            INTEGER PRIMARY KEY AUTOINCREMENT,
+                workflow_name TEXT NOT NULL,
+                mode          TEXT NOT NULL DEFAULT 'full',  -- full|harness
+                status        TEXT NOT NULL,                 -- running|success|error|stopped
+                error         TEXT NOT NULL DEFAULT '',
+                detail        TEXT NOT NULL DEFAULT '{}',    -- JSON: {nodes, harness, output_refs}
+                started_at    TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+                finished_at   TEXT,
+                duration_ms   INTEGER
+            );
+            CREATE INDEX IF NOT EXISTS idx_exec_wf
+                ON workflow_executions(workflow_name, id DESC);
         """)
     _migrate_json_workflows()
 
@@ -134,3 +147,87 @@ def delete_workflow(name: str) -> bool:
     with _connect() as conn:
         cur = conn.execute("DELETE FROM workflows WHERE name = ?", (name,))
     return cur.rowcount > 0
+
+
+def workflow_exists(name: str) -> bool:
+    with _connect() as conn:
+        row = conn.execute(
+            "SELECT 1 FROM workflows WHERE name = ?", (name,)).fetchone()
+    return row is not None
+
+
+# ---------- Lịch sử thực thi (exec history) ----------
+
+EXEC_RETENTION = 50  # mỗi workflow giữ tối đa N bản ghi gần nhất; prune sau khi chốt
+
+
+def create_execution(name: str, mode: str) -> int:
+    """Tạo bản ghi exec trạng thái 'running'; trả id để cập nhật khi chạy xong."""
+    with _connect() as conn:
+        cur = conn.execute(
+            "INSERT INTO workflow_executions (workflow_name, mode, status) "
+            "VALUES (?, ?, 'running')",
+            (name, mode))
+        return cur.lastrowid
+
+
+def finish_execution(exec_id: int, status: str, error: str, detail: dict,
+                     duration_ms: int | None) -> None:
+    """Chốt bản ghi exec (status/error/detail/duration) rồi prune giữ top-50/workflow."""
+    with _connect() as conn:
+        conn.execute(
+            "UPDATE workflow_executions SET status=?, error=?, detail=?, "
+            "duration_ms=?, finished_at=datetime('now','localtime') WHERE id=?",
+            (status, error, json.dumps(detail, ensure_ascii=False), duration_ms, exec_id))
+        row = conn.execute(
+            "SELECT workflow_name FROM workflow_executions WHERE id=?",
+            (exec_id,)).fetchone()
+        if row:
+            # Xóa bản ghi cũ hơn top-EXEC_RETENTION cùng workflow (id lớn = mới hơn).
+            conn.execute(
+                "DELETE FROM workflow_executions WHERE workflow_name=? AND id NOT IN ("
+                "  SELECT id FROM workflow_executions WHERE workflow_name=? "
+                "  ORDER BY id DESC LIMIT ?)",
+                (row["workflow_name"], row["workflow_name"], EXEC_RETENTION))
+
+
+def list_executions(name: str, limit: int, offset: int) -> tuple[list[dict], int]:
+    """Trả (rows, total) bản ghi exec của workflow, mới nhất trước, có paging."""
+    with _connect() as conn:
+        total = conn.execute(
+            "SELECT COUNT(*) AS c FROM workflow_executions WHERE workflow_name=?",
+            (name,)).fetchone()["c"]
+        rows = conn.execute(
+            "SELECT id, workflow_name, mode, status, error, started_at, "
+            "finished_at, duration_ms FROM workflow_executions "
+            "WHERE workflow_name=? ORDER BY id DESC LIMIT ? OFFSET ?",
+            (name, limit, offset)).fetchall()
+    return [dict(r) for r in rows], total
+
+
+def get_execution(exec_id: int) -> dict | None:
+    """Bản ghi exec đầy đủ; `detail` parse sẵn thành dict."""
+    with _connect() as conn:
+        row = conn.execute(
+            "SELECT * FROM workflow_executions WHERE id=?", (exec_id,)).fetchone()
+    if not row:
+        return None
+    rec = dict(row)
+    try:
+        rec["detail"] = json.loads(rec.get("detail") or "{}")
+    except json.JSONDecodeError:
+        rec["detail"] = {}
+    return rec
+
+
+def delete_execution(exec_id: int) -> bool:
+    with _connect() as conn:
+        cur = conn.execute("DELETE FROM workflow_executions WHERE id=?", (exec_id,))
+    return cur.rowcount > 0
+
+
+def clear_executions(name: str) -> int:
+    with _connect() as conn:
+        cur = conn.execute(
+            "DELETE FROM workflow_executions WHERE workflow_name=?", (name,))
+    return cur.rowcount

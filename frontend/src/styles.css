@@ -5,6 +5,7 @@
 @import './styles/react-flow-overrides.css';
 @import './styles/connect-menu.css';
 @import './styles/image-viewer-modal.css';
+@import './styles/workflow-browser-modal.css';
 
 /* ---------- Design tokens ----------
    Token chia 3 lớp:

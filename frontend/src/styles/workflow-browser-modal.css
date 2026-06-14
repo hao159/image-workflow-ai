@@ -1,0 +1,191 @@
+/* ---------- Modal "Mở workflow": danh sách + lịch sử exec ---------- */
+.modal.wf-browser { width: 680px; }
+
+.wf-browser-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--border);
+  margin: 4px 0 14px;
+}
+.wf-tab {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-dim);
+  padding: 8px 14px;
+  font-size: 12.5px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.wf-tab:hover:not(:disabled):not(.active) { color: var(--text); }
+.wf-tab.active { color: var(--text); border-bottom-color: var(--accent); font-weight: 600; }
+.wf-tab:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.wf-browser-body { display: flex; flex-direction: column; gap: 6px; }
+.wf-browser-empty {
+  padding: 28px 12px;
+  text-align: center;
+  color: var(--text-faint);
+  font-size: 12.5px;
+}
+
+/* ----- Danh sách workflow ----- */
+.wf-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 6px 8px;
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s;
+}
+.wf-row:hover { background: var(--bg-hover); }
+.wf-row.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent-soft); }
+.wf-row-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: transparent;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+  font-family: inherit;
+}
+.wf-row-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.wf-row-date { font-size: 11px; color: var(--text-faint); }
+
+.wf-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+.wf-pager-info { font-size: 12px; color: var(--text-dim); }
+
+/* ----- Lịch sử thực thi (master-detail) ----- */
+.exec-list { display: flex; flex-direction: column; gap: 6px; }
+.exec-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 8px 10px;
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s;
+}
+.exec-row:hover { background: var(--bg-hover); }
+.exec-row.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent-soft); }
+.exec-row-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.exec-row-top { display: flex; align-items: center; gap: 8px; font-size: 12.5px; }
+.exec-row-sub { font-size: 11px; color: var(--text-faint); }
+
+.exec-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.exec-badge.success { background: color-mix(in srgb, var(--ok) 14%, transparent); color: var(--ok); }
+.exec-badge.error { background: color-mix(in srgb, var(--err) 14%, transparent); color: var(--err); }
+.exec-badge.stopped { background: color-mix(in srgb, var(--warn) 16%, transparent); color: var(--warn); }
+.exec-badge.running { background: var(--bg-hover); color: var(--text-dim); }
+
+.exec-mode {
+  font-size: 10.5px;
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 1px 6px;
+}
+
+.exec-history-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.exec-history-actions { display: flex; gap: 6px; }
+
+/* ----- Chi tiết 1 lần chạy ----- */
+.exec-detail {
+  margin-top: 8px;
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.exec-detail-title { font-size: 12px; font-weight: 600; color: var(--text-dim); }
+.exec-images { display: flex; flex-wrap: wrap; gap: 8px; }
+.exec-thumb {
+  width: 96px;
+  height: 96px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  cursor: zoom-in;
+  background: var(--bg-input);
+}
+.exec-thumb-missing {
+  width: 96px;
+  height: 96px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 10px;
+  color: var(--text-faint);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  padding: 4px;
+}
+.exec-nodes { display: flex; flex-direction: column; gap: 3px; }
+.exec-node-row { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.exec-node-dot { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; }
+.exec-node-dot.done { background: var(--ok); }
+.exec-node-dot.error { background: var(--err); }
+.exec-node-dot.running { background: var(--accent); }
+.exec-node-id { color: var(--text-dim); }
+
+.exec-harness-row { font-size: 12px; padding: 3px 0; }
+.exec-harness-row.passed { color: var(--ok); }
+.exec-harness-fb { color: var(--text-faint); }
+.exec-error-box {
+  font-size: 12px;
+  color: var(--err);
+  background: color-mix(in srgb, var(--err) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--err) 30%, transparent);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  white-space: pre-wrap;
+}
+.exec-subtitle {
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+  margin-bottom: 4px;
+}

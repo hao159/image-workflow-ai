@@ -8,3 +8,4 @@ openai>=1.60
 httpx>=0.27
 python-multipart>=0.0.17
 websockets>=13.0
+pytest>=8.0
