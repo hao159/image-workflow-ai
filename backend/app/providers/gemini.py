@@ -106,6 +106,46 @@ class GeminiProvider(ImageProvider):
             "feedback": str(data.get("feedback") or ""),
         }
 
+    def detect_region(self, image: bytes, target: str, *, model: str = "",
+                      **options) -> list[float]:
+        """Tìm bbox chuẩn hóa [x0,y0,x1,y1] (0..1) của `target` trong ảnh.
+
+        Dùng model vision TEXT (model "-image" chỉ trả ảnh → tự swap). Ép JSON. Không
+        thấy → ProviderError rõ; JSON sai → ProviderError."""
+        import json
+
+        from google.genai import types
+        client = self._get_client()
+        use_model = model or TEXT_DEFAULT_MODEL
+        if "image" in use_model:
+            use_model = TEXT_DEFAULT_MODEL
+        instruction = (
+            f"Tìm đối tượng sau trong ảnh: \"{target}\".\n"
+            "Trả JSON đúng schema: {\"found\": true/false, \"box\": [x0,y0,x1,y1]}. "
+            "Toạ độ CHUẨN HÓA 0..1: (x0,y0) góc trên-trái, (x1,y1) góc dưới-phải, "
+            "x0<x1, y0<y1. Khung bao SÁT đối tượng. Không thấy → {\"found\": false}.")
+        response = client.models.generate_content(
+            model=use_model,
+            contents=[types.Part.from_bytes(data=image, mime_type="image/png"),
+                      instruction],
+            config=types.GenerateContentConfig(
+                response_modalities=["TEXT"], response_mime_type="application/json"),
+        )
+        text = (getattr(response, "text", None) or "").strip()
+        if not text:
+            raise ProviderError("Gemini không trả về kết quả trích vùng.")
+        try:
+            data = json.loads(text)
+        except json.JSONDecodeError:
+            start, end = text.find("{"), text.rfind("}")
+            if start < 0 or end <= start:
+                raise ProviderError(f"Gemini trả JSON trích vùng sai: {text[:200]}")
+            data = json.loads(text[start:end + 1])
+        if not data.get("found", True) or "box" not in data:
+            raise ProviderError(
+                f"Không tìm thấy '{target}' trong ảnh. Thử mô tả khác hoặc ảnh rõ hơn.")
+        return [float(v) for v in data["box"]]
+
     def edit(self, images: list[bytes], prompt: str, *, model: str = "",
              image_labels: list[str] | None = None, **options) -> bytes:
         from google.genai import types

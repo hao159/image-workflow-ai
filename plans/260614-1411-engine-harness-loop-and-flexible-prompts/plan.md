@@ -6,7 +6,7 @@ description: >-
   prompt node sinh cuối) + tiêu chí tùy chọn; hết limit → xuất best + report.
   Thêm node trích vùng tổng quát (mô tả gì tách nấy → bbox → crop PIL). Bỏ chỉ
   thị prompt cứng → builder theo intent + override đè.
-status: pending
+status: completed
 priority: P2
 branch: main
 tags:
@@ -51,7 +51,7 @@ Nguồn brainstorm (đã chốt): `plans/reports/brainstorm-260614-1411-engine-h
 | 1 | [Prompt override đè (inline)](./phase-01-adaptive-system-prompt.md) | Completed |
 | 2 | [Engine harness loop opt-in (critic-refine)](./phase-02-node-tr-ch-v-ng-t-ng-qu-t.md) | Completed |
 | 3 | [Frontend harness UI + docs](./phase-03-engine-harness-loop-opt-in.md) | Completed |
-| 4 | [HOÃN — Node trích vùng (milestone riêng)](./phase-04-frontend-harness-ui-v-docs.md) | Deferred |
+| 4 | [Node trích vùng tổng quát (extract_region)](./phase-04-frontend-harness-ui-v-docs.md) | Completed (sau harness) |
 
 ## Decisions (chốt từ brainstorm)
 

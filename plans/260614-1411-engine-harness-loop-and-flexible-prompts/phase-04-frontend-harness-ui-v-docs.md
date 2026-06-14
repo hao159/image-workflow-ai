@@ -1,15 +1,15 @@
 ---
 phase: 4
-title: "[HOÃN — milestone riêng] Node trích vùng tổng quát"
-status: deferred
+title: '[HOÃN — milestone riêng] Node trích vùng tổng quát'
+status: completed
 priority: P3
-effort: "4-6h"
+effort: 4-6h
 dependencies: []
 ---
 
 # Phase 4: [HOÃN sang milestone riêng] Node trích vùng tổng quát
 
-> **Quyết định (red-team Scope F8 + user):** Node trích vùng **KHÔNG block** harness loop (Phase 2 không phụ thuộc) và là *building block* độc lập. Theo tinh thần "mở rộng dần", **tách sang plan/milestone riêng** sau khi harness + prompt linh hoạt ship + đo chất lượng. Giữ stub này để khởi tạo plan sau, KHÔNG implement trong đợt này.
+> **Đã hoàn thành (session 2026-06-14, sau harness):** ban đầu hoãn (red-team Scope F8) vì không block harness; sau khi harness ship, user "tiếp" → đã implement. Node `extract_region` + `detect_region` (gemini/base/fake) + `crop_region` (PIL), test_extract_region.py 8/8, regression xanh. Áp đúng C2 (unpack tuple), C9 (gemini vision→JSON), padding=0.0 hợp lệ (không dùng `or`).
 
 ## Overview (cho milestone sau)
 

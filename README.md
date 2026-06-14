@@ -56,6 +56,7 @@ Mở http://localhost:5173, kéo node từ thanh bên trái vào canvas, nối d
 | Ghép prompt | Đầu vào | Nối nhiều đoạn text thành một, mỗi đoạn một dòng (nối bao nhiêu dây cũng được) |
 | Tạo ảnh (AI) | AI | Text → ảnh (chọn cấu hình model đã đặt tên trong ⚙ Cài đặt) + ô **Mô tả ảnh** |
 | Sửa ảnh (AI) | AI | Ảnh + prompt → ảnh đã sửa (đổi nền, thêm chi tiết, đổi style...) |
+| Trích vùng (AI) | AI | Ảnh + mô tả đối tượng → AI tìm vùng → crop giữ nguyên pixel gốc (mặt/người/áo/con vật...). Pre-process trước khi ghép. Cần provider vision (Gemini) |
 | Resize | Biến đổi | Đổi kích thước |
 | Bộ lọc | Biến đổi | Trắng đen / blur / sharpen... |
 | Chỉnh màu | Biến đổi | Sáng / tương phản / bão hòa |

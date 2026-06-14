@@ -52,3 +52,11 @@ class ImageProvider(ABC):
     def supports_critique(cls) -> bool:
         """True nếu provider override critique_image (có vision chấm ảnh)."""
         return cls.critique_image is not ImageProvider.critique_image
+
+    def detect_region(self, image: bytes, target: str, *, model: str = "",
+                      **options) -> list[float]:
+        """Tìm bbox CHUẨN HÓA [x0,y0,x1,y1] (0..1) của đối tượng `target` trong ảnh
+        (node Trích vùng). Provider không vision dùng mặc định này → báo lỗi rõ."""
+        raise ProviderError(
+            f"Provider '{self.name}' không hỗ trợ trích vùng (detect_region). "
+            "Dùng cấu hình Gemini cho node Trích vùng.")
