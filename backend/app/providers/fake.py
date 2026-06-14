@@ -55,3 +55,9 @@ class FakeProvider(ImageProvider):
     def generate_text(self, prompt: str, *, model: str = "", system: str = "",
                       **options) -> str:
         return f"[fake] {prompt[:120]}"
+
+    def critique_image(self, image: bytes, goal: str, criteria: str = "", *,
+                       model: str = "", **options) -> dict:
+        # Offline: luôn "đạt" để harness dừng ngay iteration 0 (không loop vô ích
+        # khi test thủ công --fake). Test tự động dùng stub riêng cho kịch bản loop.
+        return {"score": 9.0, "passed": True, "feedback": "[fake] đạt"}

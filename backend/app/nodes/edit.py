@@ -22,6 +22,9 @@ class EditImageNode(BaseNode):
               dynamic_options=provider_options),
         Param("prompt", "textarea", "Prompt sửa ảnh", default="",
               supplement_for="prompt", supplement_label="Prompt bổ sung"),
+        # Đè chỉ thị identity mặc định (khối "Ảnh N") khi cần ý đồ khác face-swap.
+        # Trống → giữ chỉ thị mặc định (backward compat). Chỉ tác dụng khi có nhãn ảnh.
+        Param("instruction", "textarea", "Chỉ thị hệ thống (tùy chọn)", default=""),
         Param("denoise", "number", "Denoise (ComfyUI)", default=0.6,
               min=0.1, max=1.0, step=0.05),
     ]
@@ -44,7 +47,8 @@ class EditImageNode(BaseNode):
         labels += list(il.get("images") or [])
         if inputs.get("image2"):
             labels.append((il.get("image2") or [""])[-1])
-        prompt = compose_edit_prompt(labels, prompt)
+        prompt = compose_edit_prompt(labels, prompt,
+                                     instruction_override=params.get("instruction"))
         provider, default_model = resolve_model_config(params["provider"])
         # image_labels (song song images) cho provider xen caption trước từng ảnh
         # (Codex/Gemini). Provider không hỗ trợ (OpenAI/ComfyUI) bỏ qua qua **options.

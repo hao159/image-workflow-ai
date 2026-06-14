@@ -37,3 +37,18 @@ class ImageProvider(ABC):
         raise ProviderError(
             f"Provider '{self.name}' không hỗ trợ sinh text. "
             "Chọn cấu hình Gemini / OpenAI / Codex cho node này.")
+
+    def critique_image(self, image: bytes, goal: str, criteria: str = "", *,
+                       model: str = "", **options) -> dict:
+        """Chấm ảnh so mục tiêu (harness critic) — trả {score:0..10, passed:bool,
+        feedback:str}. Provider không có vision (ComfyUI/OpenAI Images/Codex) dùng
+        mặc định này → báo lỗi rõ. Engine kiểm tra `supports_critique()` TRƯỚC khi
+        chạy nên không tốn lượt sinh ảnh rồi mới chết."""
+        raise ProviderError(
+            f"Provider '{self.name}' không hỗ trợ chấm ảnh (harness). "
+            "Cấu hình một critic Gemini trong ⚙ Cài đặt.")
+
+    @classmethod
+    def supports_critique(cls) -> bool:
+        """True nếu provider override critique_image (có vision chấm ảnh)."""
+        return cls.critique_image is not ImageProvider.critique_image

@@ -210,8 +210,10 @@ async def ws_run(ws: WebSocket):
             if isinstance(data, dict) and "workflow" in data:  # envelope
                 req = RunRequest.model_validate(data)
                 workflow, target, force = req.workflow, req.target, frozenset(req.force)
+                harness = req.harness
             else:                                               # workflow thuần
                 workflow, target, force = Workflow.model_validate(data), None, frozenset()
+                harness = None
         except (ValidationError, ValueError) as e:
             await ws.send_text(RunEvent(
                 type="run_error", message=f"Workflow không hợp lệ: {e}").model_dump_json())
@@ -221,7 +223,8 @@ async def ws_run(ws: WebSocket):
             await ws.send_text(event.model_dump_json(exclude_none=True))
 
         try:
-            await run_workflow(workflow, emit, target=target, force_ids=force)
+            await run_workflow(workflow, emit, target=target, force_ids=force,
+                               harness=harness)
         except WebSocketDisconnect:
             raise
         except Exception as e:  # noqa: BLE001 — lỗi engine ngoài dự kiến phải về UI

@@ -63,6 +63,49 @@ class GeminiProvider(ImageProvider):
             raise ProviderError("Gemini không trả về text nào.")
         return text
 
+    def critique_image(self, image: bytes, goal: str, criteria: str = "", *,
+                       model: str = "", **options) -> dict:
+        """Chấm ảnh so mục tiêu (harness critic) → {score:0..10, passed, feedback}.
+
+        Dùng model vision TEXT (model "-image" chỉ trả ảnh → tự swap). Ép JSON qua
+        response_mime_type. Parse robust; lỗi → ProviderError rõ."""
+        import json
+
+        from google.genai import types
+        client = self._get_client()
+        use_model = model or TEXT_DEFAULT_MODEL
+        if "image" in use_model:
+            use_model = TEXT_DEFAULT_MODEL
+        crit = f"\nTiêu chí đạt do người dùng đặt: {criteria}" if (criteria or "").strip() else ""
+        instruction = (
+            "Bạn là giám khảo chấm ảnh do AI tạo so với MỤC TIÊU. Chấm khắt khe.\n"
+            f"Mục tiêu: {goal}{crit}\n"
+            "Trả về JSON đúng schema: {\"score\": số 0..10, \"passed\": true/false, "
+            "\"feedback\": \"góp ý ngắn, cụ thể cần sửa gì để đạt mục tiêu\"}. "
+            "passed=true chỉ khi ảnh đã đạt mục tiêu ở mức product-ready.")
+        response = client.models.generate_content(
+            model=use_model,
+            contents=[types.Part.from_bytes(data=image, mime_type="image/png"),
+                      instruction],
+            config=types.GenerateContentConfig(
+                response_modalities=["TEXT"], response_mime_type="application/json"),
+        )
+        text = (getattr(response, "text", None) or "").strip()
+        if not text:
+            raise ProviderError("Gemini critic không trả về kết quả.")
+        try:
+            data = json.loads(text)
+        except json.JSONDecodeError:  # bóc cụm {...} đầu tiên nếu có rác bao quanh
+            start, end = text.find("{"), text.rfind("}")
+            if start < 0 or end <= start:
+                raise ProviderError(f"Gemini critic trả JSON sai: {text[:200]}")
+            data = json.loads(text[start:end + 1])
+        return {
+            "score": float(data.get("score") or 0.0),
+            "passed": bool(data.get("passed")),
+            "feedback": str(data.get("feedback") or ""),
+        }
+
     def edit(self, images: list[bytes], prompt: str, *, model: str = "",
              image_labels: list[str] | None = None, **options) -> bytes:
         from google.genai import types
