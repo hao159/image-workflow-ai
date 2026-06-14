@@ -12,7 +12,8 @@ import uuid
 
 import httpx
 
-from .base import ImageProvider, ProviderError, numbered_image_caption
+from .base import (ImageProvider, ProviderError, numbered_image_caption,
+                   parse_bbox_json, parse_critique_json)
 from .codex_debug_log import CodexDebugLog
 # _parse_image_from_sse re-export tại đây cho test_codex.py import  # noqa: F401
 from .codex_sse_parsers import _parse_image_from_sse, _parse_text_from_sse
@@ -28,6 +29,7 @@ CODEX_VERSION = "0.124.0"
 # Endpoint codex/responses bắt buộc có "instructions" (system prompt) — thiếu → 400.
 IMAGE_INSTRUCTIONS = "You are an image generation assistant. Use the image_generation tool to create the requested image."
 TEXT_INSTRUCTIONS = "You are a helpful writing assistant."
+VISION_INSTRUCTIONS = "You are a vision analysis assistant. Inspect the image and reply with ONLY the requested JSON object — no prose, no code fences."
 # Trần thời gian cả request (giây). httpx timeout=180 chỉ là timeout MỖI lần đọc
 # — server cứ nhỏ giọt event thì request chạy vô hạn; trần này chặn lại.
 TOTAL_DEADLINE_S = 300
@@ -85,7 +87,50 @@ class OpenAICodexProvider(ImageProvider):
         }
         return self._stream_request(body, _parse_text_from_sse)
 
+    def detect_region(self, image: bytes, target: str, *, model: str = "",
+                      **options) -> list[float]:
+        """Tìm bbox của `target` qua model vision (gpt-5.5 multimodal). Toạ độ lưới
+        0..999 (chuẩn OpenAI) → chuẩn hóa /999 về 0..1."""
+        instruction = (
+            f'Find the object: "{target}" in the image. '
+            'Return JSON {"found": true|false, "box": [x_min, y_min, x_max, y_max]} '
+            'with INTEGER coordinates on a 0..999 grid (top-left origin, x_max>x_min, '
+            'y_max>y_min), box tight around the object. Not found → {"found": false}.')
+        return parse_bbox_json(self._vision_json(image, instruction, model),
+                               scale=999.0, target=target)
+
+    def critique_image(self, image: bytes, goal: str, criteria: str = "", *,
+                       model: str = "", **options) -> dict:
+        """Chấm ảnh vs mục tiêu (harness critic) qua model vision → JSON."""
+        crit = f"\nUser acceptance criteria: {criteria}" if (criteria or "").strip() else ""
+        instruction = (
+            "You are a strict judge scoring an AI-generated image against a GOAL.\n"
+            f"Goal: {goal}{crit}\n"
+            'Return JSON {"score": 0..10 number, "passed": true|false, '
+            '"feedback": "short, concrete fix to reach the goal"}. '
+            "passed=true only if the image is product-ready for the goal.")
+        return parse_critique_json(self._vision_json(image, instruction, model))
+
     # ---------- internal ----------
+
+    def _vision_json(self, image: bytes, instruction: str, model: str = "") -> str:
+        """Gửi ẢNH + instruction ở chế độ TEXT (không tool sinh ảnh) → trả text JSON.
+        Model "-image" chỉ sinh ảnh → swap về host multimodal mặc định."""
+        use_model = model or DEFAULT_MODEL
+        if "image" in use_model:
+            use_model = DEFAULT_MODEL
+        data_url = "data:image/png;base64," + base64.b64encode(image).decode()
+        body = {
+            "model": use_model,
+            "instructions": VISION_INSTRUCTIONS,
+            "input": [{"role": "user", "content": [
+                {"type": "input_text", "text": instruction},
+                {"type": "input_image", "image_url": data_url},
+            ]}],
+            "stream": True,
+            "store": False,
+        }
+        return self._stream_request(body, _parse_text_from_sse)
 
     def _headers(self, access_token: str, account_id: str) -> dict:
         return {

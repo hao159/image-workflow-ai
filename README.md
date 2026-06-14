@@ -56,7 +56,7 @@ Mở http://localhost:5173, kéo node từ thanh bên trái vào canvas, nối d
 | Ghép prompt | Đầu vào | Nối nhiều đoạn text thành một, mỗi đoạn một dòng (nối bao nhiêu dây cũng được) |
 | Tạo ảnh (AI) | AI | Text → ảnh (chọn cấu hình model đã đặt tên trong ⚙ Cài đặt) + ô **Mô tả ảnh** |
 | Sửa ảnh (AI) | AI | Ảnh + prompt → ảnh đã sửa (đổi nền, thêm chi tiết, đổi style...) |
-| Trích vùng (AI) | AI | Ảnh + mô tả đối tượng → AI tìm vùng → crop giữ nguyên pixel gốc (mặt/người/áo/con vật...). Pre-process trước khi ghép. Cần provider vision (Gemini hoặc OpenAI gpt-4o) |
+| Trích vùng (AI) | AI | Ảnh + mô tả đối tượng → AI tìm vùng → crop giữ nguyên pixel gốc (mặt/người/áo/con vật...). Pre-process trước khi ghép. Cần provider vision (Gemini / OpenAI / Codex) |
 | Resize | Biến đổi | Đổi kích thước |
 | Bộ lọc | Biến đổi | Trắng đen / blur / sharpen... |
 | Chỉnh màu | Biến đổi | Sáng / tương phản / bão hòa |
@@ -133,10 +133,10 @@ số vòng**. Kết quả cuối = **iteration điểm cao nhất** + báo cáo 
 - **Cấu hình** (popover nút Harness): *Số vòng tối đa* (mặc định 3), *Ngưỡng đạt* (0–10,
   mặc định 8), *Critic* (cấu hình Gemini để chấm — trống thì dùng provider của node sinh),
   *Tiêu chí đạt* (tùy chọn — ví dụ "mặt rõ, đúng người, nền sạch").
-- **Cần provider vision** để chấm ảnh: **Gemini** (bbox grounding native, chính xác nhất)
-  hoặc **OpenAI** (gpt-4o vision; đặt model vision trong cấu hình). ComfyUI không có VLM →
-  báo lỗi rõ **trước khi** sinh (không tốn lượt). Lưu ý: `gpt-image-*` là model *sinh ảnh*,
-  không chấm/trích được — critic tự chuyển sang model vision text khi cần.
+- **Cần provider vision** để chấm ảnh: **Gemini** (bbox grounding native, chính xác nhất),
+  **OpenAI** (gpt-4o vision) hoặc **Codex** (đăng nhập ChatGPT — gpt-5.5 multimodal).
+  ComfyUI không có VLM → báo lỗi rõ **trước khi** sinh (không tốn lượt). Lưu ý: `gpt-image-*`
+  là model *sinh ảnh*, không chấm/trích được — tự chuyển sang model vision khi cần.
 - **Token-aware**: dừng sớm khi đạt; node không đổi vẫn cache-hit; có giới hạn vòng cứng.
 - Node lỗi giữa chừng → vẫn **giữ + lưu bản tốt nhất** đã có + báo "dừng sớm".
 - **Chạy thường (▶ Chạy)** không đổi gì — harness là đường riêng, opt-in.
