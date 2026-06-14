@@ -15,7 +15,7 @@ from .image_normalize import normalize_image
 from .models import RunEvent, RunRequest, Workflow
 from .nodes import node_type_metadata
 from .oauth_routes import router as oauth_router
-from .providers import PROVIDER_NAMES
+from .providers import PROVIDER_NAMES, model_catalog
 
 db.init_db()
 
@@ -103,6 +103,45 @@ def delete_model_config(config_id: int):
     if not db.delete_model_config(config_id):
         return JSONResponse({"error": "Không tìm thấy cấu hình."}, status_code=404)
     return {"deleted": config_id}
+
+
+# ---------- Danh sách model cho dropdown (static curated + fetch live) ----------
+
+class ProviderModelsIn(BaseModel):
+    # refresh=False → chỉ trả static (đổi provider, không chạm mạng).
+    # refresh=True  → fetch live thật (nút "⟳ Tải từ API").
+    # config_id: dùng key/base_url đã lưu (lúc sửa, key form để trống).
+    # api_key/base_url: dùng trực tiếp (lúc tạo mới, key gõ trong form chưa lưu).
+    refresh: bool = False
+    config_id: Optional[int] = None
+    api_key: str = ""
+    base_url: str = ""
+
+
+@app.post("/api/providers/{provider}/models")
+def list_provider_models(provider: str, body: ProviderModelsIn):
+    """Trả {static, live, error}. Fetch live luôn fail mềm → static vẫn về, HTTP 200."""
+    if provider not in model_catalog.STATIC:
+        return JSONResponse({"error": f"Provider không hợp lệ: {provider}"}, status_code=400)
+
+    static = model_catalog.STATIC[provider]
+    if not body.refresh:
+        return {"static": static, "live": [], "error": None}
+
+    api_key, base_url = body.api_key.strip(), body.base_url.strip()
+    if body.config_id is not None:
+        cfg = db.get_model_config_by_id(body.config_id)
+        if cfg:  # key/base_url đã lưu thắng giá trị body rỗng
+            api_key = api_key or cfg["api_key"]
+            base_url = base_url or cfg["base_url"]
+
+    live: list[str] = []
+    error = None
+    try:
+        live = model_catalog.fetch_live(provider, api_key, base_url)
+    except Exception as e:  # noqa: BLE001 — fail mềm, giữ static
+        error = str(e)
+    return {"static": static, "live": live, "error": error}
 
 
 @app.post("/api/upload")

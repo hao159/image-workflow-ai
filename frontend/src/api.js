@@ -62,6 +62,21 @@ export async function deleteModelConfig(id) {
   return res.json()
 }
 
+export async function listProviderModels(provider, { refresh = false, configId, apiKey, baseUrl } = {}) {
+  const body = { refresh }
+  if (configId != null) body.config_id = configId
+  if (apiKey) body.api_key = apiKey
+  if (baseUrl) body.base_url = baseUrl
+  const res = await fetch(`/api/providers/${encodeURIComponent(provider)}/models`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(data.error || 'Không tải được danh sách model.')
+  return data
+}
+
 export function openRunSocket() {
   const proto = location.protocol === 'https:' ? 'wss' : 'ws'
   return new WebSocket(`${proto}://${location.host}/ws/run`)

@@ -148,3 +148,14 @@
   font-size: 12px;
   color: var(--err);
 }
+
+/* ---------- Dropdown model hybrid (static + tải từ API + nhập tay) ---------- */
+.model-field { display: flex; gap: 6px; align-items: center; }
+.model-field select { flex: 1; min-width: 0; }
+.model-field .btn { flex: 0 0 auto; padding: 6px 9px; }
+.model-field-error {
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--err);
+  line-height: 1.5;
+}

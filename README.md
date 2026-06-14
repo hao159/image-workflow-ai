@@ -17,6 +17,8 @@ mỗi node là một bước (prompt → tạo ảnh → sửa ảnh → biến 
 >
 > Lưu ý model: `gpt-5.5` chỉ là model "host" điều khiển tool `image_generation` — ảnh thực tế do model gpt-image sinh nội bộ (server tự chọn). Soi lỗi khi tạo ảnh treo/thất bại: đặt `CODEX_DEBUG=1` trong `.env` → mỗi request ghi log đầy đủ request body + từng event SSE vào `logs/codex/*.log` (không ghi token). Request quá 300s chưa ra ảnh sẽ tự hủy với lỗi rõ ràng thay vì chạy vô hạn.
 
+> Chọn model: ô **Model** trong ⚙ Cài đặt là dropdown — có sẵn danh sách model curated theo provider; bấm **⟳** để tải danh sách model thật từ API (Gemini / OpenAI / checkpoint ComfyUI); hoặc chọn **✎ Nhập tay** để gõ tên model tự do. Bỏ trống = model mặc định của provider.
+
 ## Cài đặt
 
 ```powershell

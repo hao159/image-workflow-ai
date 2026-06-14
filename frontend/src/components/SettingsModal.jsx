@@ -8,6 +8,7 @@ import {
 } from '../api.js'
 import { getRunEffect, setRunEffect, RUN_EFFECT_OPTIONS } from '../ui-settings.js'
 import { GearIcon, PlusIcon, SaveIcon, XIcon } from './icons.jsx'
+import ModelField from './model-field.jsx'
 
 const PROVIDERS = [
   { value: 'gemini', label: 'Google Gemini', defaultModel: 'gemini-2.5-flash-image' },
@@ -199,15 +200,15 @@ export default function SettingsModal({ onClose, onChanged }) {
               </p>
             </div>
           )}
-          <label>
-            <span>Model</span>
-            <input
-              type="text"
-              placeholder={`bỏ trống = ${providerMeta?.defaultModel}`}
-              value={form.model}
-              onChange={(e) => set('model', e.target.value)}
-            />
-          </label>
+          <ModelField
+            provider={form.provider}
+            configId={form.id}
+            apiKey={form.api_key}
+            baseUrl={form.base_url}
+            value={form.model}
+            onChange={(v) => set('model', v)}
+            placeholder={`mặc định = ${providerMeta?.defaultModel}`}
+          />
           {errorMsg && <div className="config-error">{errorMsg}</div>}
           <div className="config-form-actions">
             <button className="btn primary" type="submit" disabled={saving}>

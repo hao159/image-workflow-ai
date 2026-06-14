@@ -71,6 +71,13 @@ def get_model_config(name: str) -> dict | None:
     return dict(row) if row else None
 
 
+def get_model_config_by_id(config_id: int) -> dict | None:
+    with _connect() as conn:
+        row = conn.execute(
+            "SELECT * FROM model_configs WHERE id = ?", (config_id,)).fetchone()
+    return dict(row) if row else None
+
+
 def save_model_config(name: str, provider: str, api_key: str, model: str,
                       base_url: str, config_id: int | None = None) -> int | None:
     """Tạo mới hoặc cập nhật; trả về id, hoặc None nếu id cần cập nhật không tồn tại."""
