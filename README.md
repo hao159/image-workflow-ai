@@ -51,6 +51,33 @@ npm run dev --prefix frontend
 
 Mở http://localhost:5173, kéo node từ thanh bên trái vào canvas, nối dây, bấm **▶ Chạy**.
 
+## One-click chạy từ source (tự cài Python/Node)
+
+Không muốn cài tay từng thứ? Dùng script bootstrap — tự lo **Python ≥3.10, Node ≥18 (qua
+nvm), venv + pip deps, npm deps**, build frontend rồi chạy backend (serve SPA cùng origin) +
+tự mở trình duyệt. Mỗi bước có fallback (ưu tiên userspace, chỉ hỏi sudo khi cần).
+
+```powershell
+# Windows: double-click run.bat  — hoặc:
+powershell -ExecutionPolicy Bypass -File run.ps1
+powershell -ExecutionPolicy Bypass -File run.ps1 -Dev       # dev mode (Vite + backend hot-reload)
+powershell -ExecutionPolicy Bypass -File run.ps1 -Rebuild   # build lại frontend
+```
+
+```bash
+# Linux (Ubuntu/CentOS/...) & macOS:
+bash run.sh
+bash run.sh --dev        # dev mode
+bash run.sh --rebuild    # build lại frontend
+```
+
+- **Cài gì:** thiếu Python → thử pyenv → (hỏi) apt/dnf/yum/brew/winget/choco. Thiếu Node →
+  nvm/nvm-windows (userspace) → fallback package manager. Đã có sẵn & đủ version thì bỏ qua.
+- **Chạy lại** nhanh: deps đã có → bỏ qua cài; `frontend/dist` đã có → bỏ qua build (dùng
+  `--rebuild`/`-Rebuild` để build lại). API key vẫn nhập qua **⚙ Cài đặt** lúc chạy.
+- Lần đầu cài Node/Python qua nvm/winget có thể cần **mở lại terminal** nếu PATH chưa nạp;
+  chạy script lần nữa là xong.
+
 ## Đóng gói thành file .exe (Windows, không cần Python/Node)
 
 Gói cả backend + frontend thành **1 app desktop tự chứa** chạy bằng cách double-click —

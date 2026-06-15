@@ -1,0 +1,10 @@
+# Chuẩn hóa line-ending để script chạy đúng đa nền tảng.
+* text=auto
+
+# Shell script PHẢI giữ LF — CRLF làm hỏng shebang trên Linux/macOS ("bad interpreter").
+*.sh text eol=lf
+
+# Script Windows giữ CRLF.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
