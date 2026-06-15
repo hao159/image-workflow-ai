@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { categoryStyle } from '../node-category-styles.js'
-import { LogoIcon, PlusIcon, SearchIcon } from './icons.jsx'
+import { PlusIcon, SearchIcon } from './icons.jsx'
 
 const CATEGORY_ORDER = ['Đầu vào', 'AI', 'Biến đổi', 'Đầu ra', 'Khác']
 
@@ -21,7 +21,7 @@ export default function Palette({ nodeTypes, onAdd }) {
   return (
     <aside className="palette">
       <div className="palette-brand">
-        <div className="palette-logo"><LogoIcon size={19} /></div>
+        <img className="palette-logo" src="/image-workflow-logo.svg" alt="Image Workflow" width="34" height="34" />
         <div>
           <h1 className="palette-title">Image Workflow</h1>
           <p className="palette-sub">Node-based AI editor</p>
