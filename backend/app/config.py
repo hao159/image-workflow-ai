@@ -1,9 +1,19 @@
 import os
+import sys
 from pathlib import Path
 
 from dotenv import load_dotenv
 
-ROOT_DIR = Path(__file__).resolve().parents[2]
+# Khi đóng gói PyInstaller (sys.frozen): __file__ nằm trong thư mục giải nén tạm
+# (sys._MEIPASS, read-only) → KHÔNG dùng làm nơi ghi dữ liệu. Đặt ROOT_DIR cạnh
+# file .exe để DB/cache/ảnh sống lâu dài; SPA lấy từ data bundle (_MEIPASS).
+if getattr(sys, "frozen", False):
+    ROOT_DIR = Path(sys.executable).resolve().parent  # ghi được, cạnh .exe
+    SPA_DIR = Path(sys._MEIPASS) / "frontend_dist"  # frontend build nhúng kèm
+else:
+    ROOT_DIR = Path(__file__).resolve().parents[2]
+    SPA_DIR = ROOT_DIR / "frontend" / "dist"
+
 load_dotenv(ROOT_DIR / ".env")
 
 OUTPUTS_DIR = ROOT_DIR / "outputs"

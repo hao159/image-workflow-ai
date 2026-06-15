@@ -21,6 +21,11 @@ logs/
 data.db
 *.db
 
+# PyInstaller build artifacts (bản đóng gói exe — không commit)
+dist/
+build/pyinstaller-work/
+*.spec.bak
+
 # ClaudeKit tooling (rules/skills/deps — not project code)
 .claude/
 release-manifest.json

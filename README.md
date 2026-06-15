@@ -51,6 +51,67 @@ npm run dev --prefix frontend
 
 Mở http://localhost:5173, kéo node từ thanh bên trái vào canvas, nối dây, bấm **▶ Chạy**.
 
+## One-click chạy từ source (tự cài Python/Node)
+
+Không muốn cài tay từng thứ? Dùng script bootstrap — tự lo **Python ≥3.10, Node ≥18 (qua
+nvm), venv + pip deps, npm deps**, build frontend rồi chạy backend (serve SPA cùng origin) +
+tự mở trình duyệt. Mỗi bước có fallback (ưu tiên userspace, chỉ hỏi sudo khi cần).
+
+```powershell
+# Windows: double-click run.bat  — hoặc:
+powershell -ExecutionPolicy Bypass -File run.ps1
+powershell -ExecutionPolicy Bypass -File run.ps1 -Dev       # dev mode (Vite + backend hot-reload)
+powershell -ExecutionPolicy Bypass -File run.ps1 -Rebuild   # build lại frontend
+```
+
+```bash
+# Linux (Ubuntu/CentOS/...) & macOS:
+bash run.sh
+bash run.sh --dev        # dev mode
+bash run.sh --rebuild    # build lại frontend
+```
+
+- **Cài gì:** thiếu Python → thử pyenv → (hỏi) apt/dnf/yum/brew/winget/choco. Thiếu Node →
+  nvm/nvm-windows (userspace) → fallback package manager. Đã có sẵn & đủ version thì bỏ qua.
+- **Chạy lại** nhanh: deps đã có → bỏ qua cài; `frontend/dist` đã có → bỏ qua build (dùng
+  `--rebuild`/`-Rebuild` để build lại). API key vẫn nhập qua **⚙ Cài đặt** lúc chạy.
+- Lần đầu cài Node/Python qua nvm/winget có thể cần **mở lại terminal** nếu PATH chưa nạp;
+  chạy script lần nữa là xong.
+
+## Đóng gói thành file .exe (Windows, không cần Python/Node)
+
+Gói cả backend + frontend thành **1 app desktop tự chứa** chạy bằng cách double-click —
+máy đích KHÔNG cần cài Python hay Node.
+
+```powershell
+# Yêu cầu (chỉ máy build): backend\.venv đã cài requirements.txt + frontend đã npm install
+powershell -File build\build.ps1
+```
+
+Script làm 3 việc: build frontend (Vite) → cài PyInstaller vào venv (chỉ lúc build) →
+đóng gói **onedir**. Kết quả:
+
+```
+dist\ImageWorkflow\
+├── ImageWorkflow.exe   ← double-click để chạy
+└── _internal\          ← Python runtime + thư viện + frontend build (nhúng kèm)
+```
+
+**Chạy:** double-click `ImageWorkflow.exe` → tự bật server `127.0.0.1:8000` (đổi cổng nếu
+bận) + tự mở trình duyệt vào app. Không còn 2 terminal — frontend được backend phục vụ
+cùng origin.
+
+- **Dữ liệu** (`data.db`, `cache/`, `uploads/`, `outputs/`, `workflows/`, `logs/`) tạo
+  **cạnh file .exe** và sống qua các lần chạy. Copy cả thư mục `dist\ImageWorkflow\` đi nơi
+  khác vẫn chạy; muốn reset thì xóa các thư mục dữ liệu này.
+- **API key** nhập qua **⚙ Cài đặt** (lưu trong `data.db`) — KHÔNG nhúng vào exe. Có thể
+  đặt thêm file `.env` cạnh exe nếu muốn seed `GEMINI_API_KEY`/`OPENAI_API_KEY`.
+- **Đăng nhập ChatGPT (codex)** vẫn dùng chung `~/.codex/auth.json` như bản dev.
+- **Antivirus/SmartScreen** có thể cảnh báo exe mới chưa ký số (chọn "vẫn chạy"). Bản
+  onedir đã giảm thiểu so với onefile; ký số nằm ngoài phạm vi.
+- **Soi lỗi:** spec để `console=True` → cửa sổ terminal hiện log uvicorn + lỗi. Muốn chạy
+  ẩn terminal: sửa `console=False` trong `build\imageworkflow.spec` rồi build lại.
+
 ## Các node có sẵn
 
 | Node | Nhóm | Chức năng |

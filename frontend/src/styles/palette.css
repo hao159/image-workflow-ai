@@ -20,10 +20,7 @@
   height: 34px;
   flex-shrink: 0;
   border-radius: var(--radius-md);
-  background: var(--accent);
-  color: #fff;
-  display: grid;
-  place-items: center;
+  display: block;
 }
 .palette-title {
   font-size: 14.5px;

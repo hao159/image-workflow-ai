@@ -8,6 +8,7 @@ from typing import Optional
 from fastapi import FastAPI, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ValidationError
 
 from . import cache, config, db
@@ -367,3 +368,12 @@ async def ws_run(ws: WebSocket):
             await ws.close()
         except RuntimeError:
             pass
+
+
+# ---------- Phục vụ SPA (frontend build) cùng origin ----------
+# Mount Ở CUỐI: Starlette khớp route theo thứ tự đăng ký → mọi /api/* và /ws/run
+# ở trên thắng; phần còn lại do StaticFiles xử lý (html=True trả index.html tại /).
+# Frontend không có client-side router (chỉ React Flow) nên không cần history-fallback.
+# Chỉ mount khi có thư mục build (chạy dev với Vite proxy thì SPA_DIR vắng → bỏ qua).
+if config.SPA_DIR.is_dir():
+    app.mount("/", StaticFiles(directory=config.SPA_DIR, html=True), name="spa")
