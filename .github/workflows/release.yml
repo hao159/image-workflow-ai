@@ -67,10 +67,24 @@ jobs:
         shell: powershell
         run: |
           $ErrorActionPreference = "Stop"
-          python --version
+          # Tự dò Python >=3.10. Ưu tiên 'py' launcher (py.exe ở C:\Windows nên service
+          # luôn thấy, kể cả khi 'python' chưa lên PATH / runner chưa restart sau khi cài).
+          $check = "import sys; sys.exit(0 if sys.version_info[:2] >= (3,10) else 1)"
+          function Test-Py($exe, $pre) {
+            try {
+              if ($pre) { & $exe $pre -c $check 2>$null } else { & $exe -c $check 2>$null }
+              return ($LASTEXITCODE -eq 0)
+            } catch { return $false }
+          }
+          if     (Test-Py 'py' '-3.12') { $PYEXE = 'py'; $PYPRE = '-3.12' }
+          elseif (Test-Py 'py' '-3')    { $PYEXE = 'py'; $PYPRE = '-3' }
+          elseif (Test-Py 'python' '')  { $PYEXE = 'python'; $PYPRE = '' }
+          else { throw "Khong tim thay Python >=3.10. Cai python.org 3.12 (All Users + py launcher) roi RESTART runner service." }
+          if ($PYPRE) { & $PYEXE $PYPRE --version } else { & $PYEXE --version }
+          Write-Host "Dung Python: $PYEXE $PYPRE"
           node --version
           npm --version
-          python -m venv backend/.venv
+          if ($PYPRE) { & $PYEXE $PYPRE -m venv backend/.venv } else { & $PYEXE -m venv backend/.venv }
           if ($LASTEXITCODE -ne 0) { throw "venv creation failed" }
           & "backend/.venv/Scripts/python.exe" -m pip install --upgrade pip
           if ($LASTEXITCODE -ne 0) { throw "pip upgrade failed" }
@@ -80,19 +94,32 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "npm ci failed" }
           powershell -ExecutionPolicy Bypass -File build/build.ps1
           if ($LASTEXITCODE -ne 0) { throw "build.ps1 failed" }
-          python -c "import shutil; shutil.make_archive('ImageWorkflow-windows', 'zip', 'dist', 'ImageWorkflow')"
+          & "backend/.venv/Scripts/python.exe" -c "import shutil; shutil.make_archive('ImageWorkflow-windows', 'zip', 'dist', 'ImageWorkflow')"
           if ($LASTEXITCODE -ne 0) { throw "packaging failed" }
 
-      # --- Linux (bash); runner dùng 'python3' (đã là 3.12) ---
+      # --- Linux (bash) ---
+      # Tự dò Python >=3.10 (pillow>=11 cần >=3.10). 'python3' mặc định có thể là 3.8,
+      # nên thử 'python3.12'/'python3.13' trước. Báo lỗi rõ nếu runner chưa có 3.10+.
       - name: Build & package (Linux)
         if: matrix.label == 'linux'
         shell: bash
         run: |
           set -euo pipefail
-          python3 --version
+          PY=""
+          for c in python3.12 python3.13 python3; do
+            if command -v "$c" >/dev/null 2>&1 && "$c" -c 'import sys; raise SystemExit(0 if sys.version_info[:2] >= (3,10) else 1)' 2>/dev/null; then
+              PY="$c"; break
+            fi
+          done
+          if [ -z "$PY" ]; then
+            echo "Không tìm thấy Python >=3.10 trên runner (python3 hiện tại: $(python3 --version 2>&1 || echo 'không có'))." >&2
+            echo "Cài: sudo add-apt-repository ppa:deadsnakes/ppa && sudo apt install -y python3.12 python3.12-venv" >&2
+            exit 1
+          fi
+          echo "Dùng Python: $PY ($("$PY" --version))"
           node --version
           npm --version
-          python3 -m venv backend/.venv
+          "$PY" -m venv backend/.venv
           backend/.venv/bin/python -m pip install --upgrade pip
           backend/.venv/bin/python -m pip install -r backend/requirements.txt
           npm ci --prefix frontend
