@@ -13,6 +13,7 @@ import {
 import Palette from './components/Palette.jsx'
 import SettingsModal from './components/SettingsModal.jsx'
 import WorkflowBrowserModal from './components/workflow-browser-modal.jsx'
+import ImageLibraryModal from './components/image-library-modal.jsx'
 import WorkflowNode from './components/WorkflowNode.jsx'
 import DeletableEdge from './components/DeletableEdge.jsx'
 import ConnectNodeMenu from './components/ConnectNodeMenu.jsx'
@@ -26,6 +27,7 @@ import {
   ChevronDownIcon,
   FolderIcon,
   GearIcon,
+  ImageIcon,
   LayoutIcon,
   PlayIcon,
   SaveIcon,
@@ -59,6 +61,7 @@ export default function App() {
   const [statusMsg, setStatusMsg] = useState('')
   const [showSettings, setShowSettings] = useState(false)
   const [showWorkflowBrowser, setShowWorkflowBrowser] = useState(false)
+  const [showImageLibrary, setShowImageLibrary] = useState(false)
   // Harness mode (chạy lặp critic-refine): cấu hình + nhật ký iteration + report
   const [harnessCfg, setHarnessCfg] = useState({
     max_iterations: 3, pass_score: 8, criteria: '', critic_provider: '',
@@ -609,6 +612,9 @@ export default function App() {
           >
             <FolderIcon size={14} /> Mở workflow
           </button>
+          <button className="btn" onClick={() => setShowImageLibrary(true)}>
+            <ImageIcon size={14} /> Thư viện ảnh
+          </button>
           <button className="btn" onClick={() => setShowSettings(true)}>
             <GearIcon size={14} /> Cài đặt
           </button>
@@ -704,6 +710,9 @@ export default function App() {
           onDelete={removeWorkflow}
           onClose={() => setShowWorkflowBrowser(false)}
         />
+      )}
+      {showImageLibrary && (
+        <ImageLibraryModal onClose={() => setShowImageLibrary(false)} />
       )}
       {connectMenu && (
         <ConnectNodeMenu
