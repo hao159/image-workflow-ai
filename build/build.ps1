@@ -19,11 +19,11 @@ npm run build --prefix (Join-Path $root "frontend")
 if ($LASTEXITCODE -ne 0) { throw "npm build thất bại (exit $LASTEXITCODE)" }
 
 Write-Host "==> [2/3] Đảm bảo PyInstaller trong venv (build-time, không vào requirements.txt)..." -ForegroundColor Cyan
-& $py -m PyInstaller --version *> $null
-if ($LASTEXITCODE -ne 0) {
-    & $py -m pip install pyinstaller
-    if ($LASTEXITCODE -ne 0) { throw "pip install pyinstaller thất bại" }
-}
+# Luôn đảm bảo PyInstaller (pip bỏ qua nếu đã có). KHÔNG dùng '-m PyInstaller --version'
+# để dò: khi chưa cài, native command ghi stderr + $ErrorActionPreference='Stop' sẽ ném
+# NativeCommandError, làm dừng script TRƯỚC khi kịp cài.
+& $py -m pip install pyinstaller
+if ($LASTEXITCODE -ne 0) { throw "pip install pyinstaller thất bại" }
 
 Write-Host "==> [3/3] PyInstaller (onedir)..." -ForegroundColor Cyan
 & $py -m PyInstaller (Join-Path $root "build\imageworkflow.spec") `
