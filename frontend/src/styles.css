@@ -6,6 +6,7 @@
 @import './styles/connect-menu.css';
 @import './styles/image-viewer-modal.css';
 @import './styles/workflow-browser-modal.css';
+@import './styles/image-library.css';
 @import './styles/toast.css';
 
 /* ---------- Design tokens ----------
