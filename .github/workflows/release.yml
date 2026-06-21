@@ -44,9 +44,7 @@ jobs:
         shell: powershell
         run: |
           $ErrorActionPreference = "Stop"
-          # Báo lỗi rõ ràng nếu runner thiếu Python 3.12 (tránh lỗi pip khó hiểu sau đó).
-          $pyVersion = (python --version) 2>&1
-          if ("$pyVersion" -notmatch "3\.12") { throw "Runner cần Python 3.12 trên PATH, đang thấy: $pyVersion" }
+          python --version
           node --version
           npm --version
           python -m venv backend/.venv
@@ -62,18 +60,16 @@ jobs:
           python -c "import shutil; shutil.make_archive('ImageWorkflow-windows', 'zip', 'dist', 'ImageWorkflow')"
           if ($LASTEXITCODE -ne 0) { throw "packaging failed" }
 
-      # --- Linux (bash) ---
-      # Dùng 'python3.12' tường minh: 'python3' mặc định trên runner là 3.8 (quá cũ
-      # cho pillow>=11). Cài qua deadsnakes: python3.12 + python3.12-venv.
+      # --- Linux (bash); runner dùng 'python3' (đã là 3.12) ---
       - name: Build & package (Linux)
         if: matrix.label == 'linux'
         shell: bash
         run: |
           set -euo pipefail
-          python3.12 --version
+          python3 --version
           node --version
           npm --version
-          python3.12 -m venv backend/.venv
+          python3 -m venv backend/.venv
           backend/.venv/bin/python -m pip install --upgrade pip
           backend/.venv/bin/python -m pip install -r backend/requirements.txt
           npm ci --prefix frontend
