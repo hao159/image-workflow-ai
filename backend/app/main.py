@@ -169,6 +169,63 @@ def _safe_file(directory, name: str):
     return path
 
 
+_IMAGE_EXTS = {"png", "jpg", "jpeg", "webp", "gif", "bmp"}
+
+
+def _list_images(directory, url_prefix: str):
+    # Liệt kê file ảnh trong thư mục → mới nhất trước (theo mtime). Bỏ file không phải ảnh.
+    items = []
+    for p in directory.iterdir():
+        if not p.is_file() or p.suffix.lower().lstrip(".") not in _IMAGE_EXTS:
+            continue
+        st = p.stat()
+        items.append({
+            "name": p.name,
+            "url": f"{url_prefix}/{p.name}",
+            "size": st.st_size,
+            "modified": time.strftime("%Y-%m-%d %H:%M", time.localtime(st.st_mtime)),
+            "_mtime": st.st_mtime,
+        })
+    items.sort(key=lambda x: x["_mtime"], reverse=True)
+    for it in items:
+        del it["_mtime"]
+    return items
+
+
+# List routes registered before /{name} catch-alls so they match first.
+@app.get("/api/uploads")
+def list_uploads():
+    return _list_images(config.UPLOADS_DIR, "/api/uploads")
+
+
+@app.get("/api/outputs")
+def list_outputs():
+    return _list_images(config.OUTPUTS_DIR, "/api/outputs")
+
+
+# Delete routes registered before GET /{name} so Starlette finds the right method
+# when a path-traversal attempt (e.g. "../../x") is passed as {name}.
+@app.delete("/api/uploads/{name:path}")
+def delete_upload(name: str):
+    # {name:path} captures encoded slashes (%2f) so path-traversal attempts reach this
+    # handler and are rejected by _safe_file instead of leaking to the SPA catch-all.
+    path = _safe_file(config.UPLOADS_DIR, name)
+    if not path:
+        return JSONResponse({"error": "Không tìm thấy file."}, status_code=404)
+    path.unlink()
+    return {"deleted": name}
+
+
+@app.delete("/api/outputs/{name:path}")
+def delete_output(name: str):
+    # Same rationale as delete_upload above.
+    path = _safe_file(config.OUTPUTS_DIR, name)
+    if not path:
+        return JSONResponse({"error": "Không tìm thấy file."}, status_code=404)
+    path.unlink()
+    return {"deleted": name}
+
+
 @app.get("/api/uploads/{name}")
 def get_upload(name: str):
     path = _safe_file(config.UPLOADS_DIR, name)
