@@ -6,7 +6,7 @@ import {
   saveModelConfig,
   startOpenAIOAuth,
 } from '../api.js'
-import { PlusIcon, SaveIcon } from './icons.jsx'
+import { PlusIcon, SaveIcon, XIcon } from './icons.jsx'
 import ModelField from './model-field.jsx'
 
 const PROVIDERS = [
@@ -22,6 +22,7 @@ const EMPTY_FORM = { id: null, name: '', provider: 'gemini', api_key: '', model:
 export default function SettingsModelTab({ onChanged }) {
   const [configs, setConfigs] = useState([])
   const [form, setForm] = useState(EMPTY_FORM)
+  const [formOpen, setFormOpen] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
   const [saving, setSaving] = useState(false)
   // Trạng thái đăng nhập OpenAI (Codex OAuth)
@@ -53,6 +54,23 @@ export default function SettingsModelTab({ onChanged }) {
   const editing = form.id !== null
   const providerMeta = PROVIDERS.find((p) => p.value === form.provider)
 
+  // Mở popup thêm mới (form trống) / sửa (đổ dữ liệu config, ẩn api_key cũ).
+  const openAdd = () => {
+    setForm(EMPTY_FORM)
+    setErrorMsg('')
+    setFormOpen(true)
+  }
+  const openEdit = (cfg) => {
+    setForm({ ...cfg, api_key: '' })
+    setErrorMsg('')
+    setFormOpen(true)
+  }
+  const closeForm = () => {
+    setForm(EMPTY_FORM)
+    setErrorMsg('')
+    setFormOpen(false)
+  }
+
   const submit = async (e) => {
     e.preventDefault()
     setErrorMsg('')
@@ -60,6 +78,7 @@ export default function SettingsModelTab({ onChanged }) {
     try {
       await saveModelConfig(form)
       setForm(EMPTY_FORM)
+      setFormOpen(false)
       await refresh()
       onChanged?.()
     } catch (err) {
@@ -73,7 +92,7 @@ export default function SettingsModelTab({ onChanged }) {
     if (!confirm(`Xóa cấu hình "${cfg.name}"?`)) return
     try {
       await deleteModelConfig(cfg.id)
-      if (form.id === cfg.id) setForm(EMPTY_FORM)
+      if (form.id === cfg.id) closeForm()
       await refresh()
       onChanged?.()
     } catch (err) {
@@ -88,7 +107,14 @@ export default function SettingsModelTab({ onChanged }) {
         rồi chọn theo tên trong node Tạo/Sửa ảnh.
       </p>
 
-      {configs.length > 0 && (
+      <div className="config-section-head">
+        <span className="settings-section-title">Cấu hình model</span>
+        <button className="btn primary" type="button" onClick={openAdd}>
+          <PlusIcon size={13} /> Thêm cấu hình
+        </button>
+      </div>
+
+      {configs.length > 0 ? (
         <table className="config-table">
           <thead>
             <tr><th>Tên</th><th>Provider</th><th>Model</th><th>API key</th><th></th></tr>
@@ -101,17 +127,25 @@ export default function SettingsModelTab({ onChanged }) {
                 <td>{c.model || <span className="dim">mặc định</span>}</td>
                 <td>{c.api_key_preview || <span className="dim">—</span>}</td>
                 <td className="config-actions">
-                  <button className="btn ghost" onClick={() => setForm({ ...c, api_key: '' })}>Sửa</button>
+                  <button className="btn ghost" onClick={() => openEdit(c)}>Sửa</button>
                   <button className="btn ghost danger" onClick={() => remove(c)}>Xóa</button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
+      ) : (
+        <p className="config-empty">Chưa có cấu hình nào. Bấm "Thêm cấu hình" để tạo mới.</p>
       )}
 
-      <form className="config-form" onSubmit={submit}>
-        <div className="config-form-title">{editing ? `Sửa "${form.name}"` : 'Thêm cấu hình mới'}</div>
+      {formOpen && (
+      <div className="modal-backdrop config-modal-backdrop" onClick={closeForm}>
+      <div className="modal config-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <span className="modal-title">{editing ? `Sửa "${form.name}"` : 'Thêm cấu hình mới'}</span>
+          <button className="btn ghost" type="button" onClick={closeForm}><XIcon size={15} /></button>
+        </div>
+        <form className="config-form in-modal" onSubmit={submit}>
         <label>
           <span>Tên cấu hình</span>
           <input
@@ -188,13 +222,14 @@ export default function SettingsModelTab({ onChanged }) {
             {editing ? <SaveIcon size={13} /> : <PlusIcon size={13} />}
             {editing ? 'Cập nhật' : 'Thêm'}
           </button>
-          {editing && (
-            <button className="btn" type="button" onClick={() => setForm(EMPTY_FORM)}>
-              Hủy sửa
-            </button>
-          )}
+          <button className="btn" type="button" onClick={closeForm}>
+            Hủy
+          </button>
         </div>
-      </form>
+        </form>
+      </div>
+      </div>
+      )}
     </>
   )
 }
