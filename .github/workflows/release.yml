@@ -44,7 +44,9 @@ jobs:
         shell: powershell
         run: |
           $ErrorActionPreference = "Stop"
-          python --version
+          # Báo lỗi rõ ràng nếu runner thiếu Python 3.12 (tránh lỗi pip khó hiểu sau đó).
+          $pyVersion = (python --version) 2>&1
+          if ("$pyVersion" -notmatch "3\.12") { throw "Runner cần Python 3.12 trên PATH, đang thấy: $pyVersion" }
           node --version
           npm --version
           python -m venv backend/.venv
