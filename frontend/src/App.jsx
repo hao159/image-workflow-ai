@@ -3,6 +3,7 @@ import {
   ReactFlow,
   Background,
   Controls,
+  ControlButton,
   MiniMap,
   addEdge,
   useNodesState,
@@ -17,12 +18,15 @@ import DeletableEdge from './components/DeletableEdge.jsx'
 import ConnectNodeMenu from './components/ConnectNodeMenu.jsx'
 import { RunContext } from './RunContext.jsx'
 import { ImageViewerProvider } from './ImageViewerContext.jsx'
+import { useToast } from './ToastContext.jsx'
+import { layoutNodes } from './auto-layout.js'
 import {
   AlertIcon,
   CheckIcon,
   ChevronDownIcon,
   FolderIcon,
   GearIcon,
+  LayoutIcon,
   PlayIcon,
   SaveIcon,
   StopIcon,
@@ -67,7 +71,8 @@ export default function App() {
   // Theme hiện tại ('light'|'dark') để React Flow đổi colorMode + màu lưới nền
   // theo Sáng/Tối. Nghe sự kiện 'iw-theme-change' (phát từ ui-settings.applyTheme).
   const [theme, setTheme] = useState(resolveTheme)
-  const { screenToFlowPosition, updateNodeData } = useReactFlow()
+  const { screenToFlowPosition, updateNodeData, fitView } = useReactFlow()
+  const toast = useToast()
   const wsRef = useRef(null)
 
   useEffect(() => {
@@ -105,9 +110,13 @@ export default function App() {
   useEffect(() => {
     fetchNodeTypes()
       .then(setNodeTypeMetas)
-      .catch(() => setStatusMsg('⚠ Không kết nối được backend (cổng 8000). Hãy chạy backend trước.'))
+      .catch(() => {
+        const m = '⚠ Không kết nối được backend (cổng 8000). Hãy chạy backend trước.'
+        setStatusMsg(m) // giữ trong chip vì là lỗi BỀN (backend chưa chạy)
+        toast.error('Không kết nối được backend (cổng 8000). Hãy chạy backend trước.')
+      })
     listWorkflows().then(setSavedList).catch(() => {})
-  }, [])
+  }, [toast])
 
   const findPort = useCallback(
     (nodeId, handleId, direction) => {
@@ -154,7 +163,8 @@ export default function App() {
       const defaults = Object.fromEntries(meta.params.map((p) => [p.name, p.default]))
       setNodes((nds) => [
         ...nds,
-        { id, type: 'wf', position, data: { meta, params: defaults, status: 'idle' } },
+        // width mặc định 256px = cơ sở cho NodeResizer; kéo mép sẽ ghi đè width/height.
+        { id, type: 'wf', position, width: 256, data: { meta, params: defaults, status: 'idle' } },
       ])
       return id
     },
@@ -283,6 +293,10 @@ export default function App() {
         type: n.data.meta.type,
         params: n.data.params,
         position: n.position,
+        // Lưu kích thước (ưu tiên giá trị đã resize, fallback kích thước đo được)
+        // để mở lại workflow giữ nguyên node to/nhỏ người dùng đã chỉnh.
+        width: n.width ?? n.measured?.width,
+        height: n.height ?? n.measured?.height,
       })),
       edges: edges.map((e) => ({
         id: e.id,
@@ -359,14 +373,16 @@ export default function App() {
             break
           case 'run_finished':
             runEnded = true
-            setStatusMsg('✓ Hoàn thành')
+            setStatusMsg('') // chip chỉ giữ trạng thái đang chạy → xong thì ẩn
+            toast.success('Hoàn thành')
             setRunning(false)
             setRunningNodeId(null)
             setEdgesAnimated(false)
             break
           case 'run_error':
             runEnded = true
-            setStatusMsg(`✗ Lỗi: ${ev.message}`)
+            setStatusMsg(`✗ Lỗi: ${ev.message}`) // giữ lỗi trong chip (bền) + toast
+            toast.error(`Lỗi: ${ev.message}`)
             setRunning(false)
             setRunningNodeId(null)
             setEdgesAnimated(false)
@@ -378,6 +394,7 @@ export default function App() {
       ws.onclose = () => {
         if (runEnded) return
         setStatusMsg('✗ Mất kết nối backend giữa chừng (backend restart?). Chạy lại workflow.')
+        toast.error('Mất kết nối backend giữa chừng (backend restart?). Chạy lại workflow.')
         setRunning(false)
         setRunningNodeId(null)
         setEdgesAnimated(false)
@@ -390,7 +407,7 @@ export default function App() {
         )
       }
     },
-    [running, nodes.length, buildPayload, setNodes, updateNodeData, setEdgesAnimated],
+    [running, nodes.length, buildPayload, setNodes, updateNodeData, setEdgesAnimated, toast],
   )
 
   const run = useCallback(() => startRun({ target: null, force: [] }), [startRun])
@@ -419,19 +436,29 @@ export default function App() {
     wsRef.current?.close()
     setRunning(false)
     setRunningNodeId(null)
-    setStatusMsg('Đã dừng.')
+    setStatusMsg('')
+    toast.info('Đã dừng')
     setEdgesAnimated(false)
-  }, [setEdgesAnimated])
+  }, [setEdgesAnimated, toast])
 
   const clearCache = useCallback(async () => {
     try {
       await clearCacheApi()
-      setStatusMsg('Đã xóa cache')
+      setStatusMsg('')
+      toast.success('Đã xóa cache')
       setNodes((nds) => nds.map((n) => ({ ...n, data: { ...n.data, cached: false } })))
     } catch (e) {
-      setStatusMsg(`✗ ${e.message}`)
+      setStatusMsg('')
+      toast.error(e.message)
     }
-  }, [setNodes])
+  }, [setNodes, toast])
+
+  // Dàn node tự động (trái→phải) cho gọn rồi fit khung nhìn. requestAnimationFrame
+  // để React Flow kịp đo lại kích thước node mới đặt trước khi fitView.
+  const arrange = useCallback(() => {
+    setNodes((nds) => layoutNodes(nds, edges))
+    requestAnimationFrame(() => fitView({ padding: 0.2, duration: 300 }))
+  }, [setNodes, edges, fitView])
 
   // Giá trị context cho WorkflowNode (▶ node + biết trạng thái bận để disable).
   const runCtx = useMemo(() => ({ runNode, runningNodeId, running }), [runNode, runningNodeId, running])
@@ -439,7 +466,8 @@ export default function App() {
   const doSave = useCallback(async (overwrite) => {
     try {
       const { saved } = await saveWorkflow(buildPayload(), { overwrite })
-      setStatusMsg(`Đã lưu "${saved}"`)
+      setStatusMsg('')
+      toast.success(`Đã lưu "${saved}"`)
       setSavedList(await listWorkflows())
     } catch (e) {
       // Backend trả 409 (tên đã tồn tại) → hỏi xác nhận ghi đè rồi lưu lại.
@@ -447,13 +475,14 @@ export default function App() {
         if (confirm(`Workflow "${workflowName}" đã tồn tại. Ghi đè?`)) {
           await doSave(true)
         } else {
-          setStatusMsg('Đã hủy lưu')
+          toast.info('Đã hủy lưu')
         }
         return
       }
-      setStatusMsg(`✗ ${e.message}`)
+      setStatusMsg('')
+      toast.error(e.message)
     }
-  }, [buildPayload, workflowName])
+  }, [buildPayload, workflowName, toast])
 
   const save = useCallback(() => doSave(false), [doSave])
 
@@ -462,11 +491,13 @@ export default function App() {
     try {
       await deleteWorkflow(name)
       setSavedList(await listWorkflows())
-      setStatusMsg(`Đã xóa "${name}"`)
+      setStatusMsg('')
+      toast.success(`Đã xóa "${name}"`)
     } catch (e) {
-      setStatusMsg(`✗ ${e.message}`)
+      setStatusMsg('')
+      toast.error(e.message)
     }
-  }, [])
+  }, [toast])
 
   const load = useCallback(
     async (name) => {
@@ -482,6 +513,9 @@ export default function App() {
               id: n.id,
               type: 'wf',
               position: { x: n.position?.x ?? 0, y: n.position?.y ?? 0 },
+              // Khôi phục kích thước đã lưu; workflow cũ chưa có size → mặc định 256px.
+              width: n.width ?? 256,
+              ...(n.height ? { height: n.height } : {}),
               data: { meta: metaByType[n.type], params: n.params, status: 'idle' },
             })),
         )
@@ -495,13 +529,15 @@ export default function App() {
             targetHandle: `in-${e.targetHandle}`,
           })),
         )
-        setStatusMsg(`Đã tải "${name}"`)
+        setStatusMsg('')
+        toast.success(`Đã tải "${name}"`)
         setShowWorkflowBrowser(false)
       } catch (e) {
-        setStatusMsg(`✗ ${e.message}`)
+        setStatusMsg('')
+        toast.error(e.message)
       }
     },
-    [metaByType, setNodes, setEdges],
+    [metaByType, setNodes, setEdges, toast],
   )
 
   // Tô màu status chip theo nội dung thông báo (✓ xanh, ✗/⚠ đỏ, đang chạy xanh dương)
@@ -642,7 +678,15 @@ export default function App() {
             defaultEdgeOptions={{ type: 'deletable', style: { strokeWidth: 1.8 } }}
           >
             <Background gap={22} size={1.4} color={gridColor} />
-            <Controls />
+            <Controls>
+              <ControlButton
+                onClick={arrange}
+                title="Dàn node tự động cho gọn (trái → phải) rồi căn khung nhìn"
+                disabled={nodes.length === 0}
+              >
+                <LayoutIcon size={15} />
+              </ControlButton>
+            </Controls>
             <MiniMap pannable zoomable />
           </ReactFlow>
         </RunContext.Provider>

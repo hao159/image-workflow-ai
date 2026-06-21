@@ -8,6 +8,10 @@ class NodeDef(BaseModel):
     type: str
     params: dict[str, Any] = Field(default_factory=dict)
     position: dict[str, float] = Field(default_factory=dict)
+    # Kích thước node trên canvas (UI-only; engine bỏ qua). Lưu lại để mở workflow
+    # giữ nguyên node người dùng đã resize. Workflow cũ thiếu field → None.
+    width: Optional[float] = None
+    height: Optional[float] = None
 
 
 class EdgeDef(BaseModel):

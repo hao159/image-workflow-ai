@@ -2,6 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { ReactFlowProvider } from '@xyflow/react'
 import App from './App.jsx'
+import { ToastProvider } from './ToastContext.jsx'
 import { applyTheme, initThemeWatcher } from './ui-settings.js'
 import '@xyflow/react/dist/style.css'
 import './styles.css'
@@ -14,7 +15,9 @@ initThemeWatcher()
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <ReactFlowProvider>
-      <App />
+      <ToastProvider>
+        <App />
+      </ToastProvider>
     </ReactFlowProvider>
   </React.StrictMode>,
 )

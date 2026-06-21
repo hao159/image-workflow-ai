@@ -51,6 +51,10 @@ npm run dev --prefix frontend
 
 Mở http://localhost:5173, kéo node từ thanh bên trái vào canvas, nối dây, bấm **▶ Chạy**.
 
+> **Resize node:** chọn node → kéo mép/góc để đổi kích thước (tối thiểu 220×120). Hữu ích khi prompt dài muốn ô rộng hơn. Kích thước được **lưu cùng workflow** (mở lại giữ nguyên).
+>
+> **⬚ Dàn node:** nút ⬚ trong cụm điều khiển zoom (góc dưới-trái canvas) tự sắp xếp các node cho gọn theo luồng **trái → phải** (dùng dagre) rồi căn vừa khung nhìn — dọn nhanh canvas rối.
+
 ## One-click chạy từ source (tự cài Python/Node)
 
 Không muốn cài tay từng thứ? Dùng script bootstrap — tự lo **Python ≥3.10, Node ≥18 (qua
