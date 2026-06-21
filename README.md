@@ -1,177 +1,103 @@
 # Image Workflow
 
-Công cụ AI tạo/sửa ảnh dạng **workflow kéo thả node** (kiểu n8n):
-mỗi node là một bước (prompt → tạo ảnh → sửa ảnh → biến đổi → lưu), nối dây giữa các node để định nghĩa pipeline.
+Công cụ AI tạo & sửa ảnh theo dạng **workflow kéo–thả node** (giống n8n): mỗi node là một
+bước (prompt → tạo ảnh → sửa ảnh → biến đổi → lưu), nối dây giữa các node để dựng pipeline.
 
-## Kiến trúc
+![Workflow canvas](images/demo-work-flow-multi-node.png)
 
-- **Backend**: Python + FastAPI (`backend/`) — engine thực thi workflow theo thứ tự topo, stream tiến độ qua WebSocket.
-- **Frontend**: React + React Flow (`frontend/`) — canvas kéo thả node, xem preview ảnh ngay trên từng node.
-- **Provider** (cắm thêm được trong `backend/app/providers/`):
-  - `gemini` — Gemini 2.5 Flash Image (Nano Banana), tạo + sửa ảnh theo prompt. Cần `GEMINI_API_KEY`.
-  - `openai` — gpt-image-1, tạo + sửa ảnh. Cần `OPENAI_API_KEY`.
-  - `codex` — **đăng nhập ChatGPT (OAuth)** thay vì API key: dùng quota gói ChatGPT qua endpoint Codex (`backend-api/codex/responses`). Tạo + sửa ảnh (đã chạy thật với gpt-5.5).
+Chạy workflow → mỗi node hiện kết quả ngay trên canvas:
 
-> Đăng nhập ChatGPT (provider `codex`): mở **⚙ Cài đặt** → chọn provider "OpenAI (đăng nhập ChatGPT)" → bấm **Đăng nhập OpenAI**. Token dùng chung file `~/.codex/auth.json` với Codex CLI (nếu đã `codex login` thì nhận luôn). Đây là endpoint nội bộ ChatGPT, không phải API chính thức — dùng cho mục đích cá nhân.
->
-> Lưu ý model: `gpt-5.5` chỉ là model "host" điều khiển tool `image_generation` — ảnh thực tế do model gpt-image sinh nội bộ (server tự chọn). Soi lỗi khi tạo ảnh treo/thất bại: đặt `CODEX_DEBUG=1` trong `.env` → mỗi request ghi log đầy đủ request body + từng event SSE vào `logs/codex/*.log` (không ghi token). Request quá 300s chưa ra ảnh sẽ tự hủy với lỗi rõ ràng thay vì chạy vô hạn.
+![Workflow sau khi chạy](images/demo-work-flow-multi-node-exec.png)
 
-> Chọn model: ô **Model** trong ⚙ Cài đặt là dropdown — có sẵn danh sách model curated theo provider; bấm **⟳** để tải danh sách model thật từ API (Gemini / OpenAI); hoặc chọn **✎ Nhập tay** để gõ tên model tự do. Bỏ trống = model mặc định của provider.
+Ảnh kết quả cuối (ghép nhiều ảnh + prompt):
 
-> Giao diện sáng/tối: **⚙ Cài đặt → Giao diện → Nền sáng/tối** chọn **Hệ thống / Sáng / Tối**. "Hệ thống" bám theo theme của OS (đổi realtime); lựa chọn được nhớ qua localStorage. Phong cách trung tính, phẳng (không glow/sparkles). Ô **Hiệu ứng node đang chạy** mặc định **Phẳng**; còn các hiệu ứng động (viền sáng / thanh quét / nhịp đập) là tùy chọn.
+![Ảnh kết quả](images/result-image.png)
 
-## Cài đặt
+## Tính năng chính
+
+- **Canvas kéo–thả:** dựng pipeline bằng cách nối các node, xem preview ảnh ngay trên node.
+- **Đa provider AI:** `gemini` (Gemini 2.5 Flash Image), `openai` (gpt-image-1), `codex`
+  (đăng nhập ChatGPT/OAuth, dùng quota gói ChatGPT). Mỗi provider chỉ cần khai báo API key
+  trong **⚙ Cài đặt** (hoặc qua `.env`).
+- **Cache theo node:** node không đổi sẽ dùng lại kết quả cũ (badge **⚡ cache**), không gọi
+  lại AI → tiết kiệm token. Đổi param/đầu vào → chỉ node đó + downstream chạy lại.
+- **Ghép nhiều ảnh:** ô **Mô tả ảnh** đặt tên từng ảnh và đi theo ảnh xuống node Sửa ảnh
+  ("mặc áo ở Ảnh 1 lên người ở Ảnh 2").
+- **Lưu workflow + lịch sử chạy** kiểu n8n (trạng thái, thời lượng, ảnh kết quả từng lần chạy).
+- **Test offline:** provider `fake` vẽ ảnh placeholder, không gọi mạng, không tốn token.
+- **Giao diện sáng/tối** (Hệ thống / Sáng / Tối), phong cách trung tính, phẳng.
+
+## Cài đặt & chạy nhanh
+
+Script bootstrap tự lo Python ≥3.10, Node ≥18, deps, build frontend rồi chạy app + mở trình duyệt.
 
 ```powershell
-# 1. Backend (đã có sẵn venv nếu bạn chạy bước setup)
+# Windows: double-click run.bat — hoặc:
+powershell -ExecutionPolicy Bypass -File run.ps1
+```
+
+```bash
+# Linux / macOS:
+bash run.sh
+```
+
+Thêm `-Dev` / `--dev` để chạy dev mode, `-Rebuild` / `--rebuild` để build lại frontend.
+
+### Cài thủ công
+
+```powershell
+# Backend
 python -m venv backend\.venv
 backend\.venv\Scripts\pip install -r backend\requirements.txt
 
-# 2. Frontend
+# Frontend
 npm install --prefix frontend
 
-# 3. API key
-copy .env.example .env   # rồi điền GEMINI_API_KEY / OPENAI_API_KEY
+# API key
+copy .env.example .env   # điền GEMINI_API_KEY / OPENAI_API_KEY (hoặc nhập sau trong ⚙ Cài đặt)
 ```
 
-## Chạy
-
 ```powershell
-# Terminal 1 — backend (cổng 8000). Thêm --reload khi đang dev.
-# Dùng script này (KHÔNG gọi uvicorn CLI trực tiếp): script tắt keepalive ping WS
-# (ws_ping_interval=None) — pong qua proxy Vite không về kịp làm uvicorn tự ngắt
-# kết nối ("keepalive ping timeout") khi node AI chạy lâu >40s; CLI không truyền
-# được None nên phải qua Python API.
+# Terminal 1 — backend (cổng 8000). Dùng script này thay vì uvicorn CLI để giữ WS sống khi node AI chạy lâu.
 backend\.venv\Scripts\python backend\run_server.py
 
 # Terminal 2 — frontend (cổng 5173)
 npm run dev --prefix frontend
 ```
 
-Mở http://localhost:5173, kéo node từ thanh bên trái vào canvas, nối dây, bấm **▶ Chạy**.
+Mở http://localhost:5173, kéo node từ thanh trái vào canvas, nối dây, bấm **▶ Chạy**.
 
-> **Resize node:** chọn node → kéo mép/góc để đổi kích thước (tối thiểu 220×120). Hữu ích khi prompt dài muốn ô rộng hơn. Kích thước được **lưu cùng workflow** (mở lại giữ nguyên).
->
-> **⬚ Dàn node:** nút ⬚ trong cụm điều khiển zoom (góc dưới-trái canvas) tự sắp xếp các node cho gọn theo luồng **trái → phải** (dùng dagre) rồi căn vừa khung nhìn — dọn nhanh canvas rối.
+## Đóng gói thành app desktop
 
-## One-click chạy từ source (tự cài Python/Node)
-
-Không muốn cài tay từng thứ? Dùng script bootstrap — tự lo **Python ≥3.10, Node ≥18 (qua
-nvm), venv + pip deps, npm deps**, build frontend rồi chạy backend (serve SPA cùng origin) +
-tự mở trình duyệt. Mỗi bước có fallback (ưu tiên userspace, chỉ hỏi sudo khi cần).
-
-```powershell
-# Windows: double-click run.bat  — hoặc:
-powershell -ExecutionPolicy Bypass -File run.ps1
-powershell -ExecutionPolicy Bypass -File run.ps1 -Dev       # dev mode (Vite + backend hot-reload)
-powershell -ExecutionPolicy Bypass -File run.ps1 -Rebuild   # build lại frontend
-```
-
-```bash
-# Linux (Ubuntu/CentOS/...) & macOS:
-bash run.sh
-bash run.sh --dev        # dev mode
-bash run.sh --rebuild    # build lại frontend
-```
-
-- **Cài gì:** thiếu Python → thử pyenv → (hỏi) apt/dnf/yum/brew/winget/choco. Thiếu Node →
-  nvm/nvm-windows (userspace) → fallback package manager. Đã có sẵn & đủ version thì bỏ qua.
-- **Chạy lại** nhanh: deps đã có → bỏ qua cài; `frontend/dist` đã có → bỏ qua build (dùng
-  `--rebuild`/`-Rebuild` để build lại). API key vẫn nhập qua **⚙ Cài đặt** lúc chạy.
-- Lần đầu cài Node/Python qua nvm/winget có thể cần **mở lại terminal** nếu PATH chưa nạp;
-  chạy script lần nữa là xong.
-
-## Đóng gói thành file .exe (Windows, không cần Python/Node)
-
-Gói cả backend + frontend thành **1 app desktop tự chứa** chạy bằng cách double-click —
-máy đích KHÔNG cần cài Python hay Node.
-
-```powershell
-# Yêu cầu (chỉ máy build): backend\.venv đã cài requirements.txt + frontend đã npm install
-powershell -File build\build.ps1
-```
-
-Script làm 3 việc: build frontend (Vite) → cài PyInstaller vào venv (chỉ lúc build) →
-đóng gói **onedir**. Kết quả:
-
-```
-dist\ImageWorkflow\
-├── ImageWorkflow.exe   ← double-click để chạy
-└── _internal\          ← Python runtime + thư viện + frontend build (nhúng kèm)
-```
-
-**Chạy:** double-click `ImageWorkflow.exe` → tự bật server `127.0.0.1:8000` (đổi cổng nếu
-bận) + tự mở trình duyệt vào app. Không còn 2 terminal — frontend được backend phục vụ
-cùng origin.
-
-- **Dữ liệu** (`data.db`, `cache/`, `uploads/`, `outputs/`, `workflows/`, `logs/`) tạo
-  **cạnh file .exe** và sống qua các lần chạy. Copy cả thư mục `dist\ImageWorkflow\` đi nơi
-  khác vẫn chạy; muốn reset thì xóa các thư mục dữ liệu này.
-- **API key** nhập qua **⚙ Cài đặt** (lưu trong `data.db`) — KHÔNG nhúng vào exe. Có thể
-  đặt thêm file `.env` cạnh exe nếu muốn seed `GEMINI_API_KEY`/`OPENAI_API_KEY`.
-- **Đăng nhập ChatGPT (codex)** vẫn dùng chung `~/.codex/auth.json` như bản dev.
-- **Antivirus/SmartScreen** có thể cảnh báo exe mới chưa ký số (chọn "vẫn chạy"). Bản
-  onedir đã giảm thiểu so với onefile; ký số nằm ngoài phạm vi.
-- **Soi lỗi:** spec để `console=True` → cửa sổ terminal hiện log uvicorn + lỗi. Muốn chạy
-  ẩn terminal: sửa `console=False` trong `build\imageworkflow.spec` rồi build lại.
-
-## Release đa nền tảng (GitHub Actions)
-
-Đóng gói binary tự chứa cho **Windows + macOS + Linux** rồi đính vào GitHub Release —
-người dùng tải về double-click chạy, KHÔNG cần Python/Node. PyInstaller không
-cross-compile được nên mỗi OS build trên đúng runner của nó (`.github/workflows/release.yml`).
-
-**Cắt release:**
-
-```bash
-git tag v0.1.0
-git push origin v0.1.0     # → Actions build 3 OS → tạo Release v0.1.0 + đính 3 file zip
-```
-
-Mỗi job zip thư mục `dist/ImageWorkflow/` thành `ImageWorkflow-{windows|macos|linux}.zip`
-và upload vào Release của tag. Vào tab **Releases** trên GitHub để xem/tải.
-
-**Thử build trước khi tag:** tab **Actions → Release → Run workflow** (`workflow_dispatch`) —
-build cả 3 OS, lưu artifact để tải kiểm thử, KHÔNG tạo release.
-
-**Build tay 1 OS** (giống CI, cần `backend/.venv` + `frontend npm install`):
+Gói backend + frontend thành **1 app tự chứa** (máy đích không cần Python/Node):
 
 ```powershell
 powershell -File build\build.ps1     # Windows → dist\ImageWorkflow\ImageWorkflow.exe
 ```
 ```bash
-bash build/build.sh                  # macOS/Linux → dist/ImageWorkflow/ImageWorkflow
+bash build/build.sh                  # macOS / Linux → dist/ImageWorkflow/ImageWorkflow
 ```
 
-- **macOS/Linux:** binary onedir tên `ImageWorkflow` (không đuôi). Chạy: mở thư mục giải nén,
-  double-click hoặc `./ImageWorkflow`. macOS chưa ký số → Gatekeeper chặn lần đầu: chuột phải →
-  **Open**, hoặc **Cài đặt → Quyền riêng tư & Bảo mật → Open Anyway**. Ký số/notarize nằm ngoài phạm vi.
-- Windows SmartScreen có thể cảnh báo exe chưa ký (chọn "vẫn chạy") — xem mục đóng gói .exe ở trên.
+Double-click để chạy → tự bật server `127.0.0.1:8000` + mở trình duyệt. Dữ liệu
+(`data.db`, `cache/`, `outputs/`...) tạo cạnh file thực thi.
+
+**Release đa nền tảng:** đẩy tag (`git push origin v0.1.0`) → GitHub Actions build
+Windows + macOS + Linux rồi đính file zip vào Release (`.github/workflows/release.yml`).
 
 ## Các node có sẵn
 
 | Node | Nhóm | Chức năng |
 |---|---|---|
 | Prompt | Đầu vào | Nhập text/prompt |
-| Tải ảnh lên | Đầu vào | Upload ảnh từ máy + ô **Mô tả ảnh** (đặt tên ảnh; đi theo ảnh xuống node Sửa ảnh) |
-| Ghép prompt | Đầu vào | Nối nhiều đoạn text thành một, mỗi đoạn một dòng (nối bao nhiêu dây cũng được) |
-| Tạo ảnh (AI) | AI | Text → ảnh (chọn cấu hình model đã đặt tên trong ⚙ Cài đặt) + ô **Mô tả ảnh** |
+| Tải ảnh lên | Đầu vào | Upload ảnh + ô **Mô tả ảnh** (đi theo ảnh xuống node Sửa ảnh) |
+| Ghép prompt | Đầu vào | Nối nhiều đoạn text thành một |
+| Tạo ảnh (AI) | AI | Text → ảnh |
 | Sửa ảnh (AI) | AI | Ảnh + prompt → ảnh đã sửa (đổi nền, thêm chi tiết, đổi style...) |
-| Trích vùng (AI) | AI | Ảnh + mô tả đối tượng → AI tìm vùng → crop giữ nguyên pixel gốc (mặt/người/áo/con vật...). Pre-process trước khi ghép. Cần provider vision (Gemini / OpenAI / Codex) |
+| Trích vùng (AI) | AI | Ảnh + mô tả đối tượng → AI tìm vùng → crop giữ pixel gốc |
 | Resize | Biến đổi | Đổi kích thước |
 | Bộ lọc | Biến đổi | Trắng đen / blur / sharpen... |
 | Chỉnh màu | Biến đổi | Sáng / tương phản / bão hòa |
 | Lưu ảnh | Đầu ra | Lưu vào `outputs/` |
-
-## Xem & tải ảnh
-
-Mọi node hiển thị ảnh (Tải ảnh lên / Tạo ảnh / Sửa ảnh / Lưu ảnh / Biến đổi):
-**bấm vào ảnh** → mở cửa sổ xem ảnh full-res, có nút **Tải ảnh gốc** (ảnh PNG gốc,
-không phải bản thu nhỏ) và mở tab mới. Đóng bằng nút ✕, phím Esc, hoặc bấm ra nền.
-
-Ảnh gốc của node AI/Biến đổi lấy từ cache blob qua `/api/cache-image/{sha}` (preview
-trên node chỉ là thumbnail nhẹ để hiển thị nhanh). Node Tải ảnh lên chỉ hiện 1 ảnh
-(ngay tại ô upload).
 
 ## Ví dụ workflow
 
@@ -179,81 +105,16 @@ trên node chỉ là thumbnail nhẹ để hiển thị nhanh). Node Tải ảnh
 
 Workflow mẫu có sẵn trong `workflows/` — bấm **📂 Mở workflow** trên thanh công cụ để tải.
 
-## Mở workflow & lịch sử chạy
+## Kiến trúc
 
-Nút **📂 Mở workflow** mở modal giữa màn hình với 2 tab:
+- **Backend** (`backend/`): Python + FastAPI — engine thực thi workflow theo thứ tự topo,
+  stream tiến độ qua WebSocket, cache kết quả từng node trên đĩa.
+- **Frontend** (`frontend/`): React + React Flow — canvas kéo–thả, preview ảnh trên node.
+- **Provider** (`backend/app/providers/`): cắm thêm bằng cách kế thừa `ImageProvider`,
+  implement `generate()` + `edit()`, đăng ký trong `providers/__init__.py`.
+- **Node mới** (`backend/app/nodes/`): kế thừa `BaseNode`, gắn `@register_node`, khai báo
+  `inputs/outputs/params` — UI tự sinh form, không cần sửa frontend.
 
-- **Danh sách:** workflow đã lưu (có **phân trang**), mỗi dòng **Tải** vào canvas hoặc **Xóa**. Bấm 🕘 để xem lịch sử chạy của workflow đó.
-- **Lịch sử:** các lần chạy gần đây kiểu n8n — badge trạng thái (✓ thành công / ✗ lỗi / ⏹ đã dừng), thời điểm, thời lượng. Bấm 1 dòng để xem **chi tiết**: ảnh kết quả (mở full-res), trạng thái từng node, thông báo lỗi. Xóa từng lần chạy hoặc xóa hết.
+## Giấy phép
 
-> **Ghi lịch sử:** chỉ ghi cho **▶ Chạy** (full) — KHÔNG ghi khi chạy 1 node lẻ (▶ trên node), để lịch sử sạch. Mỗi workflow giữ **50 bản ghi gần nhất** (tự dọn bản cũ). Ảnh không nhân đôi — chỉ tham chiếu sha vào cache blob; nếu ảnh đã bị dọn khỏi cache, chi tiết hiện "ảnh đã bị dọn".
-
-> **Lưu trùng tên:** bấm **Lưu** khi tên workflow đã tồn tại → hỏi **xác nhận ghi đè**. Đồng ý mới ghi đè; hủy thì giữ nguyên. Tên mới lưu thẳng không hỏi.
-
-> **Cài đặt theo tab:** modal **⚙ Cài đặt** chia 2 tab **Giao diện | Model** (mở mặc định ở tab Model). Đổi tab không mất dữ liệu form đang nhập.
-
-## Mô tả ảnh → phân biệt ảnh trong node Sửa ảnh (Ảnh 1 / Ảnh 2)
-
-Node nguồn (**Tải ảnh lên**, **Tạo ảnh**) có ô **"Mô tả ảnh"**: vừa làm phụ đề trên
-node (đặt tên ảnh cho dễ nhìn), vừa **đi theo ảnh** xuống node **Sửa ảnh**. Khi nhiều
-ảnh nối vào Sửa ảnh, engine tự ghép khối tham chiếu đánh số trước prompt:
-
-```
-Ảnh đầu vào:
-- Ảnh 1: cái áo sơ mi trắng
-- Ảnh 2: người mẫu nữ
-```
-
-→ AI biết "Ảnh 1/Ảnh 2" là gì. Ví dụ workflow đa-ảnh:
-
-`Tải ảnh lên("cái áo sơ mi trắng") + Tải ảnh lên("người mẫu nữ") → Sửa ảnh ("mặc áo ở Ảnh 1 lên người ở Ảnh 2")`
-
-- Đánh số theo thứ tự ảnh: ảnh gốc = **Ảnh 1**, rồi cổng "Ảnh ghép thêm" theo thứ tự nối.
-- Ảnh nối nhưng để trống mô tả → vẫn liệt kê `Ảnh N: (không mô tả)` (số không nhảy).
-- Không ảnh nào có mô tả → prompt giữ NGUYÊN như cũ.
-- Mô tả **chảy qua** node Biến đổi (Resize/Bộ lọc/Chỉnh màu) — nhãn sống sót.
-- **Đổi mô tả KHÔNG sinh lại ảnh AI** (không tốn token) nhưng node Sửa ảnh phía dưới chạy lại với prompt mới — xem mục Cache.
-
-> **Neo identity (Codex/Gemini):** 2 provider này còn xen caption `Ảnh N: <tên>` **ngay trước từng ảnh** trong request → model bám đúng "ảnh nào là ai", giảm lỗi bốc nhầm mặt khi ghép nhiều người. Kèm chỉ thị "giữ nguyên nhận dạng, không tráo mặt". OpenAI (Images-Edit API) không xen được → chỉ dùng khối text ở trên. Lưu ý: ghép nhiều khuôn mặt thật trong 1 lần gọi vẫn là giới hạn của model sinh ảnh — caption tăng tỉ lệ đúng chứ không đảm bảo tuyệt đối.
-
-> **Mẹo chất lượng mặt:** muốn AI giữ đúng mặt một người, ảnh nguồn nên là **chân dung rõ mặt** (mặt chiếm phần lớn khung). Ảnh chụp xa, người nhỏ giữa khung cảnh rộng → vùng mặt quá ít pixel → AI không trích đủ để giữ → dễ ghép sai mặt. Crop sát người trước khi upload.
-
-> **Upload tự chuẩn hóa:** ảnh upload được tự thu nhỏ về cạnh dài ≤ 2048px + nén (có trong suốt → PNG, còn lại → JPEG), chặn file > 40MB. Tránh upload vài chục MB làm phình cache + nặng request AI.
-
-## Cache theo node + chạy từng node (kiểu n8n)
-
-Engine **nhớ kết quả từng node** trên đĩa (`cache/`, sống qua `--reload`) theo
-`node_key = sha256(type + params + output_key node cha + hash source code node)`.
-Chạy lại workflow → node nào **không đổi** sẽ dùng lại output cache (badge **⚡ cache**),
-**KHÔNG gọi lại provider AI** → tiết kiệm token. Đổi param/đầu vào/sửa code node →
-key đổi, lan xuống → node đó + downstream chạy lại; nhánh khác vẫn cache-hit.
-
-- **▶ trên từng node** — chạy tới node đó (tổ tiên dùng cache), ép chính node đó sinh mới (xem output / ép tạo ảnh mới).
-- **▶ Chạy** (toolbar) — chạy tổng, cache-aware (chỉ chạy lại node đã đổi + downstream).
-- **🗑 Xóa cache** (toolbar) — xóa sạch cache; lần chạy kế chạy lại tất cả. Cũng có `POST /api/cache/clear`.
-- Ảnh cache dedupe theo nội dung; tổng vượt `CACHE_MAX_BYTES` (mặc định 500MB, đặt trong `.env`) → tự xóa blob cũ nhất.
-- Lưu ý: sửa model **sau lưng** một cấu hình đã đặt tên (giữ nguyên tên) KHÔNG tự vô hiệu cache (key theo tên cấu hình) → bấm 🗑 Xóa cache nếu muốn sinh lại.
-- Ô **"Mô tả ảnh"** KHÔNG tính vào `node_key` (đổi mô tả ≠ sinh lại ảnh AI) nhưng nối hash vào `output_key` của ảnh → node Sửa ảnh phía dưới chạy lại với prompt mới.
-
-> Node **Sửa ảnh** có thêm ô **"Chỉ thị hệ thống (tùy chọn)"**: đè chỉ thị giữ-nhận-dạng
-> mặc định ("không tráo mặt") khi ý đồ workflow khác (vd chỉ đổi nền). Trống → giữ mặc định.
-
-## Test node offline (không tốn token)
-
-Provider **`fake`** vẽ ảnh PNG placeholder + echo text, **không gọi mạng**. Tạo một
-cấu hình provider `fake` trong ⚙ Cài đặt để chạy thử node `Tạo ảnh`/`Sửa ảnh`/`Enhance prompt`
-mà không tốn token. Chạy thử 1 node ở terminal:
-
-```powershell
-cd backend
-.venv\Scripts\python.exe run_node.py --type generate_image --param prompt="mèo" --fake --out .
-.venv\Scripts\python.exe run_node.py --type resize --input image=in.png --param width=128 --param height=128 --out .
-```
-
-`--fake` ép mọi node AI dùng FakeProvider; `--input handle=path` nạp ảnh (bytes),
-`--input-text handle=giá_trị` nạp text, `--param k=v` đặt tham số (lặp được).
-
-## Thêm node / provider mới
-
-- **Node mới**: tạo class trong `backend/app/nodes/`, kế thừa `BaseNode`, gắn decorator `@register_node`, khai báo `inputs/outputs/params` — UI tự sinh form, không cần sửa frontend.
-- **Provider mới**: kế thừa `ImageProvider` trong `backend/app/providers/`, implement `generate()` và `edit()`, đăng ký trong `providers/__init__.py`.
+Phát hành theo [Apache License 2.0](LICENSE) — tự do dùng, sửa, phân phối (kèm cấp phép sáng chế).
