@@ -45,7 +45,6 @@ def get_providers():
         "configured": {
             "gemini": bool(config.GEMINI_API_KEY),
             "openai": bool(config.OPENAI_API_KEY),
-            "comfyui": config.COMFYUI_URL,
         },
     }
 
@@ -343,29 +342,20 @@ async def ws_run(ws: WebSocket):
             if isinstance(data, dict) and "workflow" in data:  # envelope
                 req = RunRequest.model_validate(data)
                 workflow, target, force = req.workflow, req.target, frozenset(req.force)
-                harness = req.harness
             else:                                               # workflow thuần
                 workflow, target, force = Workflow.model_validate(data), None, frozenset()
-                harness = None
         except (ValidationError, ValueError) as e:
             await ws.send_text(RunEvent(
                 type="run_error", message=f"Workflow không hợp lệ: {e}").model_dump_json())
             return
 
-        # Chỉ ghi lịch sử cho ▶ Chạy (full) và ▶ Harness — KHÔNG ghi chạy 1 node lẻ
-        # (target≠None & không harness) để lịch sử sạch.
-        if harness is not None and getattr(harness, "enabled", False):
-            record_mode = "harness"
-        elif target is None:
-            record_mode = "full"
-        else:
-            record_mode = None
+        # Chỉ ghi lịch sử cho ▶ Chạy (full) — KHÔNG ghi chạy 1 node lẻ
+        # (target≠None) để lịch sử sạch.
+        record_mode = "full" if target is None else None
 
-        # Gom dữ liệu run để lưu DB: trạng thái từng node, sha ảnh kết quả, điểm harness.
+        # Gom dữ liệu run để lưu DB: trạng thái từng node, sha ảnh kết quả.
         nodes_status: dict[str, str] = {}
         output_refs: list[str] = []
-        harness_iters: list[dict] = []
-        harness_best: dict = {}
         outcome = {"status": "running", "error": ""}  # cập nhật khi run_finished/run_error
 
         def _record(event: RunEvent):
@@ -379,13 +369,6 @@ async def ws_run(ws: WebSocket):
                         output_refs.append(meta["sha"])
             elif event.type == "node_error" and event.node_id:
                 nodes_status[event.node_id] = "error"
-            elif event.type == "harness_iteration":
-                harness_iters.append({
-                    "iteration": event.iteration, "score": event.score,
-                    "passed": event.passed, "feedback": event.message or "",
-                })
-            elif event.type == "harness_report" and event.report:
-                harness_best.update(event.report)
             elif event.type == "run_finished":
                 outcome["status"] = "success"
             elif event.type == "run_error":
@@ -402,8 +385,7 @@ async def ws_run(ws: WebSocket):
         started = time.monotonic()
         try:
             try:
-                await run_workflow(workflow, emit, target=target, force_ids=force,
-                                   harness=harness)
+                await run_workflow(workflow, emit, target=target, force_ids=force)
             except WebSocketDisconnect:
                 raise
             except Exception as e:  # noqa: BLE001 — lỗi engine ngoài dự kiến phải về UI
@@ -415,9 +397,7 @@ async def ws_run(ws: WebSocket):
             if exec_id is not None:
                 if outcome["status"] == "running":
                     outcome["status"] = "stopped"
-                detail = {"nodes": nodes_status, "output_refs": output_refs,
-                          "harness": {**harness_best, "iterations": harness_iters}
-                          if (harness_iters or harness_best) else {}}
+                detail = {"nodes": nodes_status, "output_refs": output_refs}
                 db.finish_execution(exec_id, outcome["status"], outcome["error"],
                                     detail, int((time.monotonic() - started) * 1000))
     except WebSocketDisconnect:

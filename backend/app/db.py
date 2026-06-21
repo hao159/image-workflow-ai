@@ -39,10 +39,10 @@ def init_db() -> None:
             CREATE TABLE IF NOT EXISTS workflow_executions (
                 id            INTEGER PRIMARY KEY AUTOINCREMENT,
                 workflow_name TEXT NOT NULL,
-                mode          TEXT NOT NULL DEFAULT 'full',  -- full|harness
+                mode          TEXT NOT NULL DEFAULT 'full',  -- full
                 status        TEXT NOT NULL,                 -- running|success|error|stopped
                 error         TEXT NOT NULL DEFAULT '',
-                detail        TEXT NOT NULL DEFAULT '{}',    -- JSON: {nodes, harness, output_refs}
+                detail        TEXT NOT NULL DEFAULT '{}',    -- JSON: {nodes, output_refs}
                 started_at    TEXT NOT NULL DEFAULT (datetime('now','localtime')),
                 finished_at   TEXT,
                 duration_ms   INTEGER

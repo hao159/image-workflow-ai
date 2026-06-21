@@ -13,11 +13,10 @@ from app.providers import model_catalog
 # ---------- STATIC ----------
 
 def test_static_has_known_providers():
-    for p in ("gemini", "openai", "codex", "comfyui"):
+    for p in ("gemini", "openai", "codex"):
         assert p in model_catalog.STATIC
     assert "gemini-2.5-flash-image" in model_catalog.STATIC["gemini"]
     assert "gpt-5.5" in model_catalog.STATIC["codex"]
-    assert model_catalog.STATIC["comfyui"] == []
 
 
 # ---------- fetch_live ----------
@@ -37,17 +36,6 @@ def test_fetch_live_openai_parses_and_filters(monkeypatch):
     out = model_catalog.fetch_live("openai", api_key="sk-test")
     assert "gpt-4o" in out and "gpt-image-1" in out
     assert "whisper-1" not in out  # lọc về model gpt/image/dall
-
-
-def test_fetch_live_comfyui_parses_checkpoints(monkeypatch):
-    class _Resp:
-        def raise_for_status(self): pass
-        def json(self):
-            return {"CheckpointLoaderSimple": {"input": {"required": {
-                "ckpt_name": [["sd_xl_base.safetensors", "dreamshaper.safetensors"]]}}}}
-    monkeypatch.setattr(httpx, "get", lambda *a, **k: _Resp())
-    out = model_catalog.fetch_live("comfyui", base_url="http://x:8188")
-    assert out == ["sd_xl_base.safetensors", "dreamshaper.safetensors"]
 
 
 def test_fetch_live_codex_returns_empty():

@@ -31,7 +31,7 @@ def compose_edit_prompt(labels: list[str], prompt: str,
     """Ghép khối tham chiếu + chỉ thị giữ nhận dạng (nếu có nhãn) TRƯỚC prompt.
 
     Không nhãn nào → trả prompt y như cũ (backward compat). Đây là cách trình bày
-    dạng-text dùng cho provider KHÔNG xen kẽ được ảnh (OpenAI Images-Edit, ComfyUI);
+    dạng-text dùng cho provider KHÔNG xen kẽ được ảnh (OpenAI Images-Edit);
     Codex/Gemini còn xen caption ngay trước từng ảnh (xem provider).
 
     `instruction_override`: chỉ thị do user nhập trên node → ĐÈ chỉ thị identity mặc

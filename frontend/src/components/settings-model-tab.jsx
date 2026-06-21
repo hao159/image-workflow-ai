@@ -13,7 +13,6 @@ const PROVIDERS = [
   { value: 'gemini', label: 'Google Gemini', defaultModel: 'gemini-2.5-flash-image' },
   { value: 'openai', label: 'OpenAI (API key)', defaultModel: 'gpt-image-1' },
   { value: 'codex', label: 'OpenAI (đăng nhập ChatGPT)', defaultModel: 'gpt-5.5' },
-  { value: 'comfyui', label: 'ComfyUI (local)', defaultModel: '(checkpoint đầu tiên)' },
 ]
 
 const EMPTY_FORM = { id: null, name: '', provider: 'gemini', api_key: '', model: '', base_url: '' }
@@ -164,7 +163,7 @@ export default function SettingsModelTab({ onChanged }) {
             ))}
           </select>
         </label>
-        {form.provider !== 'comfyui' && form.provider !== 'codex' && (
+        {form.provider !== 'codex' && (
           <label>
             <span>API key</span>
             <input
@@ -173,17 +172,6 @@ export default function SettingsModelTab({ onChanged }) {
               required={!editing}
               value={form.api_key}
               onChange={(e) => set('api_key', e.target.value)}
-            />
-          </label>
-        )}
-        {form.provider === 'comfyui' && (
-          <label>
-            <span>Địa chỉ server</span>
-            <input
-              type="text"
-              placeholder="http://127.0.0.1:8188"
-              value={form.base_url}
-              onChange={(e) => set('base_url', e.target.value)}
             />
           </label>
         )}

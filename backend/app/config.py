@@ -31,7 +31,6 @@ CACHE_MAX_BYTES = int(os.getenv("CACHE_MAX_BYTES", str(500 * 1024 * 1024)))
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-COMFYUI_URL = os.getenv("COMFYUI_URL", "http://127.0.0.1:8188")
 
 # File token OAuth ChatGPT của Codex CLI (dùng chung — tránh đăng nhập lại nếu
 # user đã chạy `codex login`). Override qua CODEX_AUTH_FILE nếu cần.

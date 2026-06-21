@@ -23,7 +23,7 @@ def test_lifecycle_create_finish_detail_delete(env):
     db, _ = env
     eid = db.create_execution("wf-x", "full")
     detail = {"nodes": {"n1": "done", "n2": "error"},
-              "output_refs": ["a" * 64], "harness": {}}
+              "output_refs": ["a" * 64]}
     db.finish_execution(eid, "success", "", detail, 1234)
 
     rec = db.get_execution(eid)
@@ -74,12 +74,12 @@ def test_prune_keeps_50(env):
 
 def test_detail_api_and_404(env):
     db, client = env
-    eid = db.create_execution("wf-d", "harness")
-    db.finish_execution(eid, "error", "boom", {"harness": {"best_score": 7.5}}, 50)
+    eid = db.create_execution("wf-d", "full")
+    db.finish_execution(eid, "error", "boom", {"nodes": {"n1": "error"}}, 50)
 
     r = client.get(f"/api/executions/{eid}")
     assert r.status_code == 200
     assert r.json()["error"] == "boom"
-    assert r.json()["detail"]["harness"]["best_score"] == 7.5
+    assert r.json()["detail"]["nodes"]["n1"] == "error"
 
     assert client.get("/api/executions/999999").status_code == 404

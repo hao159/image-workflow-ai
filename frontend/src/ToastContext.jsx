@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useMemo, useRef, useState } fro
 import ToastStack from './components/Toast.jsx'
 
 // Toast thông báo dùng chung (góc trên-giữa). Tách vai trò khỏi status-chip toolbar:
-// chip giữ trạng thái BỀN "đang chạy / harness vòng N" (cập nhật tại chỗ), còn toast
+// chip giữ trạng thái BỀN "đang chạy" (cập nhật tại chỗ), còn toast
 // NỔI LÊN cho sự kiện rời rạc (xong / lỗi / đã lưu / đã xóa / mất kết nối) rồi tự ẩn.
 // Cấp qua Context giống ImageViewerContext.jsx để component lồng sâu cũng gọi được.
 const ToastContext = createContext({

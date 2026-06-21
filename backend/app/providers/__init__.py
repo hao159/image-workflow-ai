@@ -1,6 +1,5 @@
 from .. import db
 from .base import ImageProvider, ProviderError
-from .comfyui import ComfyUIProvider
 from .fake import FakeProvider
 from .gemini import GeminiProvider
 from .openai_codex import OpenAICodexProvider
@@ -10,7 +9,6 @@ PROVIDER_CLASSES: dict[str, type[ImageProvider]] = {
     "gemini": GeminiProvider,
     "openai": OpenAIProvider,
     "codex": OpenAICodexProvider,
-    "comfyui": ComfyUIProvider,
     "fake": FakeProvider,  # dev/test offline — không gọi mạng
 }
 
@@ -26,8 +24,6 @@ def make_provider(provider_name: str, api_key: str = "", base_url: str = "") -> 
         raise ProviderError(f"Provider không hỗ trợ: {provider_name}")
     if provider_name == "fake":
         return cls()  # không cần api_key / mạng
-    if provider_name == "comfyui":
-        return cls(base_url=base_url)
     if provider_name == "codex":
         return cls()  # token OAuth, không cần api_key
     return cls(api_key=api_key)

@@ -6,14 +6,11 @@
 """
 import httpx
 
-from .. import config
-
-# List tĩnh curated mỗi provider (luôn có). comfyui chỉ live (checkpoint từ server).
+# List tĩnh curated mỗi provider (luôn có).
 STATIC: dict[str, list[str]] = {
     "gemini": ["gemini-2.5-flash-image", "gemini-2.5-flash", "gemini-2.5-pro"],
     "openai": ["gpt-image-1", "gpt-4o", "gpt-4o-mini"],
     "codex": ["gpt-5.5"],
-    "comfyui": [],
     "fake": [],
 }
 
@@ -46,14 +43,6 @@ def _fetch_openai(api_key: str, base_url: str) -> list[str]:
     return sorted(set(keep or ids))
 
 
-def _fetch_comfyui(base_url: str) -> list[str]:
-    base = (base_url or config.COMFYUI_URL).rstrip("/")
-    r = httpx.get(f"{base}/object_info/CheckpointLoaderSimple", timeout=20)
-    r.raise_for_status()
-    ckpts = r.json()["CheckpointLoaderSimple"]["input"]["required"]["ckpt_name"][0]
-    return list(ckpts or [])
-
-
 def fetch_live(provider: str, api_key: str = "", base_url: str = "") -> list[str]:
     """Danh sách model live theo provider. Raise (ValueError/httpx/SDK error) khi lỗi.
 
@@ -62,6 +51,4 @@ def fetch_live(provider: str, api_key: str = "", base_url: str = "") -> list[str
         return _fetch_gemini(api_key)
     if provider == "openai":
         return _fetch_openai(api_key, base_url)
-    if provider == "comfyui":
-        return _fetch_comfyui(base_url)
     return []

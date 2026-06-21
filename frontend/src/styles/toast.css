@@ -1,8 +1,8 @@
 /* ---------- Toast thông báo (góc trên-giữa) ----------
    Bám token semantic của theme (--ok/--err/--warn/--run, --bg-panel...) nên tự
-   đổi đúng theo Sáng/Tối. Đặt trên cùng (z cao hơn wf-menu z30, harness-panel z25)
-   để luôn nhìn thấy. Khu vực giữa phía trên đang trống (toolbar full-width ở trên,
-   Controls dưới-trái, MiniMap dưới-phải, harness-panel trên-phải). */
+   đổi đúng theo Sáng/Tối. Đặt trên cùng (z cao) để luôn nhìn thấy. Khu vực giữa
+   phía trên đang trống (toolbar full-width ở trên, Controls dưới-trái,
+   MiniMap dưới-phải). */
 .toast-stack {
   position: fixed;
   top: 64px;
