@@ -3,6 +3,7 @@
 
 # Shell script PHẢI giữ LF — CRLF làm hỏng shebang trên Linux/macOS ("bad interpreter").
 *.sh text eol=lf
+*.command text eol=lf
 
 # Script Windows giữ CRLF.
 *.bat text eol=crlf

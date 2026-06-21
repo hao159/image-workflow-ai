@@ -42,6 +42,10 @@ if [ "$(uname)" = "Darwin" ]; then
     find "$ROOT/dist/ImageWorkflow" -type f \( -name '*.so' -o -name '*.dylib' \) \
         -exec codesign --force --sign - {} + || true
     codesign --force --sign - "$BIN" || true
+    # Kèm script double-click: chuột phải → Open 1 lần để gỡ quarantine toàn bộ bundle
+    # rồi chạy app (tránh hàng loạt prompt cho từng .so/.dylib). Xem README.
+    cp "$ROOT/build/macos-launch.command" "$ROOT/dist/ImageWorkflow/Run-ImageWorkflow.command"
+    chmod +x "$ROOT/dist/ImageWorkflow/Run-ImageWorkflow.command"
 fi
 
 if [ -f "$BIN" ]; then
