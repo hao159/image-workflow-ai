@@ -24,52 +24,57 @@ jobs:
           # Mặc định runner tự gắn 'self-hosted' + OS ('windows'/'linux') + arch.
           - os: [self-hosted, windows]
             label: windows
-            build_cmd: powershell -ExecutionPolicy Bypass -File build/build.ps1
-            venv_python: backend/.venv/Scripts/python.exe
           - os: [self-hosted, linux]
             label: linux
-            build_cmd: bash build/build.sh
-            venv_python: backend/.venv/bin/python
-          # macOS: bật lại khi đã có runner — đổi 'os' thành [self-hosted, macOS]
-          # (hoặc 'macos-latest' nếu dùng runner của GitHub) rồi bỏ comment.
+          # macOS: bật lại khi đã có runner — thêm bước "Build & package (macOS)"
+          # dùng bash giống Linux rồi thêm '- os: [self-hosted, macOS] / label: macos'.
           # - os: [self-hosted, macOS]
           #   label: macos
-          #   build_cmd: bash build/build.sh
-          #   venv_python: backend/.venv/bin/python
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
 
-      # Self-hosted runners đã cài sẵn Python 3.12 + Node 20 trên PATH.
-      # Không dùng setup-python/setup-node vì chúng cố tải & cài tool vào
-      # tool-cache của runner — thao tác này hỏng trên runner tự host (quyền/registry).
-      # Bước này chỉ kiểm tra tool có sẵn để lỗi hiện rõ ràng nếu thiếu.
-      - name: Verify toolchain (pre-installed on runner)
-        shell: bash
+      # Mỗi OS chạy bằng shell GỐC của nó — KHÔNG ép 'shell: bash' vì runner tự host
+      # Windows không chắc có bash trên PATH (gây 'bash: command not found').
+      # Windows: python / PowerShell. Linux: python3 / bash.
+
+      # --- Windows (PowerShell 5.1 luôn có sẵn) ---
+      - name: Build & package (Windows)
+        if: matrix.label == 'windows'
+        shell: powershell
         run: |
+          $ErrorActionPreference = "Stop"
           python --version
           node --version
           npm --version
+          python -m venv backend/.venv
+          if ($LASTEXITCODE -ne 0) { throw "venv creation failed" }
+          & "backend/.venv/Scripts/python.exe" -m pip install --upgrade pip
+          if ($LASTEXITCODE -ne 0) { throw "pip upgrade failed" }
+          & "backend/.venv/Scripts/python.exe" -m pip install -r backend/requirements.txt
+          if ($LASTEXITCODE -ne 0) { throw "pip install failed" }
+          npm ci --prefix frontend
+          if ($LASTEXITCODE -ne 0) { throw "npm ci failed" }
+          powershell -ExecutionPolicy Bypass -File build/build.ps1
+          if ($LASTEXITCODE -ne 0) { throw "build.ps1 failed" }
+          python -c "import shutil; shutil.make_archive('ImageWorkflow-windows', 'zip', 'dist', 'ImageWorkflow')"
+          if ($LASTEXITCODE -ne 0) { throw "packaging failed" }
 
-      - name: Setup backend venv + deps
+      # --- Linux (bash + python3; 'python' thường không được symlink trên distro) ---
+      - name: Build & package (Linux)
+        if: matrix.label == 'linux'
         shell: bash
         run: |
-          python -m venv backend/.venv
-          "${{ matrix.venv_python }}" -m pip install --upgrade pip
-          "${{ matrix.venv_python }}" -m pip install -r backend/requirements.txt
-
-      - name: Install frontend deps
-        run: npm ci --prefix frontend
-
-      - name: Build standalone bundle
-        shell: bash
-        run: ${{ matrix.build_cmd }}
-
-      # Nén thư mục onedir dist/ImageWorkflow thành 1 file zip để tải về.
-      # Dùng Python (đã setup) để không phụ thuộc CLI 'zip' trên self-hosted Linux.
-      - name: Package
-        shell: bash
-        run: python -c "import shutil; shutil.make_archive('ImageWorkflow-${{ matrix.label }}', 'zip', 'dist', 'ImageWorkflow')"
+          set -euo pipefail
+          python3 --version
+          node --version
+          npm --version
+          python3 -m venv backend/.venv
+          backend/.venv/bin/python -m pip install --upgrade pip
+          backend/.venv/bin/python -m pip install -r backend/requirements.txt
+          npm ci --prefix frontend
+          bash build/build.sh
+          python3 -c "import shutil; shutil.make_archive('ImageWorkflow-linux', 'zip', 'dist', 'ImageWorkflow')"
 
       # Khi chạy tay (workflow_dispatch): lưu artifact để tải kiểm thử, KHÔNG release.
       - name: Upload build artifact
