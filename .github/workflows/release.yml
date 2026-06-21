@@ -31,10 +31,8 @@ jobs:
             label: windows
           - os: [self-hosted, linux]
             label: linux
-          # macOS: bật lại khi đã có runner — thêm bước "Build & package (macOS)"
-          # dùng bash giống Linux rồi thêm '- os: [self-hosted, macOS] / label: macos'.
-          # - os: [self-hosted, macOS]
-          #   label: macos
+          - os: [self-hosted, macOS]
+            label: macos
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -57,8 +55,8 @@ jobs:
           Write-Host "=== Thư mục Python đã cài ==="
           Get-ChildItem 'C:\Program Files\Python*','C:\Python*',"$env:LOCALAPPDATA\Programs\Python" -ErrorAction SilentlyContinue | Select-Object FullName
 
-      - name: Diagnose runner Python (Linux)
-        if: matrix.label == 'linux'
+      - name: Diagnose runner Python (Linux/macOS)
+        if: matrix.label != 'windows'
         shell: bash
         continue-on-error: true
         run: |
@@ -102,20 +100,23 @@ jobs:
           & "backend/.venv/Scripts/python.exe" -c "import shutil; shutil.make_archive('ImageWorkflow-windows', 'zip', 'dist', 'ImageWorkflow')"
           if ($LASTEXITCODE -ne 0) { throw "packaging failed" }
 
-      # --- Linux (bash) ---
-      # Tự dò Python >=3.10 (pillow>=11 cần >=3.10). 'python3' mặc định có thể là 3.8,
+      # --- Linux/macOS (bash, dùng build.sh) ---
+      # Tự dò Python >=3.10 (pillow>=11 cần >=3.10). 'python3' mặc định có thể cũ (3.8/3.9),
       # nên thử 'python3.12'/'python3.13' trước. Báo lỗi rõ nếu runner chưa có 3.10+.
-      - name: Build & package (Linux)
-        if: matrix.label == 'linux'
+      - name: Build & package (Linux/macOS)
+        if: matrix.label != 'windows'
         shell: bash
         run: |
           set -euo pipefail
-          # pyenv: runner (shell không tương tác) KHÔNG source ~/.bashrc nên không có
-          # shims trên PATH. Tự thêm vào để thấy Python do pyenv quản lý (vd 3.12).
+          # Runner (shell không tương tác) KHÔNG source ~/.bashrc/.zprofile nên thiếu PATH.
+          # Tự thêm pyenv shims + Homebrew (macOS) để thấy Python 3.12.
           if [ -d "$HOME/.pyenv" ]; then
             export PYENV_ROOT="$HOME/.pyenv"
             export PATH="$PYENV_ROOT/shims:$PYENV_ROOT/bin:$PATH"
           fi
+          for b in /opt/homebrew/bin /usr/local/bin; do
+            [ -d "$b" ] && export PATH="$b:$PATH"
+          done
           PY=""
           for c in python3.12 python3.13 python3 python; do
             if command -v "$c" >/dev/null 2>&1 && "$c" -c 'import sys; raise SystemExit(0 if sys.version_info[:2] >= (3,10) else 1)' 2>/dev/null; then
@@ -135,7 +136,7 @@ jobs:
           backend/.venv/bin/python -m pip install -r backend/requirements.txt
           npm ci --prefix frontend
           bash build/build.sh
-          backend/.venv/bin/python -c "import shutil; shutil.make_archive('ImageWorkflow-linux', 'zip', 'dist', 'ImageWorkflow')"
+          backend/.venv/bin/python -c "import shutil; shutil.make_archive('ImageWorkflow-${{ matrix.label }}', 'zip', 'dist', 'ImageWorkflow')"
 
       # Khi chạy tay (workflow_dispatch): lưu artifact để tải kiểm thử, KHÔNG release.
       - name: Upload build artifact
