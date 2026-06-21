@@ -9,7 +9,7 @@
 .img-library-note {
   padding: 6px 14px;
   font-size: 12px;
-  opacity: 0.7;
+  color: var(--text-faint);
 }
 
 .img-library-body {
@@ -27,10 +27,11 @@
 .img-card {
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--border, #2a2a2a);
-  border-radius: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
   overflow: hidden;
-  background: var(--surface-2, #1b1b1b);
+  background: var(--bg-raised);
+  color: var(--text);
 }
 
 .img-card-thumb {
@@ -38,7 +39,7 @@
   cursor: pointer;
   display: block;
   aspect-ratio: 1 / 1;
-  background: var(--surface, #111);
+  background: var(--bg-input);
 }
 
 .img-card-thumb img {
@@ -58,6 +59,7 @@
 .img-card-name {
   flex: 1;
   font-size: 12px;
+  color: var(--text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -67,12 +69,13 @@
 .confirm-backdrop { z-index: 1000; }
 
 .confirm-dialog {
-  background: var(--surface-2, #1b1b1b);
-  border: 1px solid var(--border, #2a2a2a);
-  border-radius: 10px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
   padding: 18px 20px;
   min-width: 280px;
   max-width: 90vw;
+  color: var(--text);
 }
 
 .confirm-msg { margin-bottom: 16px; font-size: 14px; }
