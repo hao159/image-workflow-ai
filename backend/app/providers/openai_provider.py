@@ -2,8 +2,7 @@ import base64
 import io
 
 from .. import config
-from .base import (ImageProvider, ProviderError, parse_bbox_json,
-                  parse_critique_json)
+from .base import ImageProvider, ProviderError, parse_bbox_json
 
 DEFAULT_MODEL = "gpt-image-1"
 # Model cho sinh text (enhance prompt...). gpt-image-* chỉ trả ảnh — nếu cấu
@@ -70,9 +69,9 @@ class OpenAIProvider(ImageProvider):
         return text
 
     def _vision_json(self, image: bytes, instruction: str, model: str) -> str:
-        """Gọi chat.completions có ẢNH (vision) + ép JSON. Dùng cho detect_region +
-        critique_image. Model "-image" (gpt-image-*) chỉ sinh ảnh → swap sang model
-        vision text (gpt-4o-mini có vision)."""
+        """Gọi chat.completions có ẢNH (vision) + ép JSON. Dùng cho detect_region.
+        Model "-image" (gpt-image-*) chỉ sinh ảnh → swap sang model vision text
+        (gpt-4o-mini có vision)."""
         client = self._get_client()
         use_model = model or TEXT_DEFAULT_MODEL
         if "image" in use_model:
@@ -101,18 +100,6 @@ class OpenAIProvider(ImageProvider):
             'y_max>y_min), box tight around the object. Not found → {"found": false}.')
         return parse_bbox_json(self._vision_json(image, instruction, model),
                                scale=999.0, target=target)
-
-    def critique_image(self, image: bytes, goal: str, criteria: str = "", *,
-                       model: str = "", **options) -> dict:
-        """Chấm ảnh vs mục tiêu (harness critic) qua model vision OpenAI → JSON."""
-        crit = f"\nUser acceptance criteria: {criteria}" if (criteria or "").strip() else ""
-        instruction = (
-            "You are a strict judge scoring an AI-generated image against a GOAL.\n"
-            f"Goal: {goal}{crit}\n"
-            'Return JSON {"score": 0..10 number, "passed": true|false, '
-            '"feedback": "short, concrete fix to reach the goal"}. '
-            "passed=true only if the image is product-ready for the goal.")
-        return parse_critique_json(self._vision_json(image, instruction, model))
 
     def edit(self, images: list[bytes], prompt: str, *, model: str = "",
              **options) -> bytes:

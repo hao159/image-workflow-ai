@@ -3,6 +3,7 @@ import {
   ReactFlow,
   Background,
   Controls,
+  ControlButton,
   MiniMap,
   addEdge,
   useNodesState,
@@ -12,17 +13,21 @@ import {
 import Palette from './components/Palette.jsx'
 import SettingsModal from './components/SettingsModal.jsx'
 import WorkflowBrowserModal from './components/workflow-browser-modal.jsx'
+import ImageLibraryModal from './components/image-library-modal.jsx'
 import WorkflowNode from './components/WorkflowNode.jsx'
 import DeletableEdge from './components/DeletableEdge.jsx'
 import ConnectNodeMenu from './components/ConnectNodeMenu.jsx'
 import { RunContext } from './RunContext.jsx'
 import { ImageViewerProvider } from './ImageViewerContext.jsx'
+import { useToast } from './ToastContext.jsx'
+import { layoutNodes } from './auto-layout.js'
 import {
   AlertIcon,
   CheckIcon,
-  ChevronDownIcon,
   FolderIcon,
   GearIcon,
+  ImageIcon,
+  LayoutIcon,
   PlayIcon,
   SaveIcon,
   StopIcon,
@@ -55,19 +60,14 @@ export default function App() {
   const [statusMsg, setStatusMsg] = useState('')
   const [showSettings, setShowSettings] = useState(false)
   const [showWorkflowBrowser, setShowWorkflowBrowser] = useState(false)
-  // Harness mode (chạy lặp critic-refine): cấu hình + nhật ký iteration + report
-  const [harnessCfg, setHarnessCfg] = useState({
-    max_iterations: 3, pass_score: 8, criteria: '', critic_provider: '',
-  })
-  const [showHarness, setShowHarness] = useState(false)
-  const [harnessLog, setHarnessLog] = useState([]) // [{iteration, score, passed, feedback}]
-  const [harnessReport, setHarnessReport] = useState(null)
+  const [showImageLibrary, setShowImageLibrary] = useState(false)
   // Khi kéo dây thả ra khoảng trống → mở menu chọn node để tạo + tự nối.
   const [connectMenu, setConnectMenu] = useState(null)
   // Theme hiện tại ('light'|'dark') để React Flow đổi colorMode + màu lưới nền
   // theo Sáng/Tối. Nghe sự kiện 'iw-theme-change' (phát từ ui-settings.applyTheme).
   const [theme, setTheme] = useState(resolveTheme)
-  const { screenToFlowPosition, updateNodeData } = useReactFlow()
+  const { screenToFlowPosition, updateNodeData, fitView } = useReactFlow()
+  const toast = useToast()
   const wsRef = useRef(null)
 
   useEffect(() => {
@@ -105,9 +105,13 @@ export default function App() {
   useEffect(() => {
     fetchNodeTypes()
       .then(setNodeTypeMetas)
-      .catch(() => setStatusMsg('⚠ Không kết nối được backend (cổng 8000). Hãy chạy backend trước.'))
+      .catch(() => {
+        const m = '⚠ Không kết nối được backend (cổng 8000). Hãy chạy backend trước.'
+        setStatusMsg(m) // giữ trong chip vì là lỗi BỀN (backend chưa chạy)
+        toast.error('Không kết nối được backend (cổng 8000). Hãy chạy backend trước.')
+      })
     listWorkflows().then(setSavedList).catch(() => {})
-  }, [])
+  }, [toast])
 
   const findPort = useCallback(
     (nodeId, handleId, direction) => {
@@ -154,7 +158,8 @@ export default function App() {
       const defaults = Object.fromEntries(meta.params.map((p) => [p.name, p.default]))
       setNodes((nds) => [
         ...nds,
-        { id, type: 'wf', position, data: { meta, params: defaults, status: 'idle' } },
+        // width mặc định 256px = cơ sở cho NodeResizer; kéo mép sẽ ghi đè width/height.
+        { id, type: 'wf', position, width: 256, data: { meta, params: defaults, status: 'idle' } },
       ])
       return id
     },
@@ -283,6 +288,10 @@ export default function App() {
         type: n.data.meta.type,
         params: n.data.params,
         position: n.position,
+        // Lưu kích thước (ưu tiên giá trị đã resize, fallback kích thước đo được)
+        // để mở lại workflow giữ nguyên node to/nhỏ người dùng đã chỉnh.
+        width: n.width ?? n.measured?.width,
+        height: n.height ?? n.measured?.height,
       })),
       edges: edges.map((e) => ({
         id: e.id,
@@ -304,14 +313,12 @@ export default function App() {
   // Mở socket chạy workflow. `target` = chạy tới node đó (+ tổ tiên), `force` =
   // danh sách node ép chạy lại (bỏ qua cache). Dùng chung cho chạy tổng + ▶ node.
   const startRun = useCallback(
-    ({ target = null, force = [], harness = null } = {}) => {
+    ({ target = null, force = [] } = {}) => {
       if (running || nodes.length === 0) return
       setRunning(true)
       setRunningNodeId(target)
-      setStatusMsg(harness ? 'Harness: đang chạy...' : target ? 'Đang chạy node...' : 'Đang chạy...')
+      setStatusMsg(target ? 'Đang chạy node...' : 'Đang chạy...')
       setEdgesAnimated(true)
-      setHarnessLog([])
-      setHarnessReport(null)
       // Chạy tổng → reset hết. Chạy 1 node → chỉ reset node đó (giữ preview các
       // node khác; node cache-hit upstream tự cập nhật qua event node_finished).
       setNodes((nds) =>
@@ -326,10 +333,7 @@ export default function App() {
       wsRef.current = ws
       let runEnded = false // true khi đã nhận run_finished/run_error — onclose sau đó là bình thường
       ws.onopen = () =>
-        ws.send(JSON.stringify({
-          workflow: buildPayload(), target, force,
-          ...(harness ? { harness } : {}),
-        }))
+        ws.send(JSON.stringify({ workflow: buildPayload(), target, force }))
       ws.onmessage = (msg) => {
         const ev = JSON.parse(msg.data)
         switch (ev.type) {
@@ -347,26 +351,18 @@ export default function App() {
           case 'node_error':
             updateNodeData(ev.node_id, { status: 'error', error: ev.message })
             break
-          case 'harness_iteration':
-            setHarnessLog((l) => [...l, {
-              iteration: ev.iteration, score: ev.score,
-              passed: ev.passed, feedback: ev.message || '',
-            }])
-            setStatusMsg(`Harness vòng ${(ev.iteration ?? 0) + 1}: điểm ${ev.score}${ev.passed ? ' ✓' : ''}`)
-            break
-          case 'harness_report':
-            setHarnessReport(ev.report || null)
-            break
           case 'run_finished':
             runEnded = true
-            setStatusMsg('✓ Hoàn thành')
+            setStatusMsg('') // chip chỉ giữ trạng thái đang chạy → xong thì ẩn
+            toast.success('Hoàn thành')
             setRunning(false)
             setRunningNodeId(null)
             setEdgesAnimated(false)
             break
           case 'run_error':
             runEnded = true
-            setStatusMsg(`✗ Lỗi: ${ev.message}`)
+            setStatusMsg(`✗ Lỗi: ${ev.message}`) // giữ lỗi trong chip (bền) + toast
+            toast.error(`Lỗi: ${ev.message}`)
             setRunning(false)
             setRunningNodeId(null)
             setEdgesAnimated(false)
@@ -378,6 +374,7 @@ export default function App() {
       ws.onclose = () => {
         if (runEnded) return
         setStatusMsg('✗ Mất kết nối backend giữa chừng (backend restart?). Chạy lại workflow.')
+        toast.error('Mất kết nối backend giữa chừng (backend restart?). Chạy lại workflow.')
         setRunning(false)
         setRunningNodeId(null)
         setEdgesAnimated(false)
@@ -390,48 +387,41 @@ export default function App() {
         )
       }
     },
-    [running, nodes.length, buildPayload, setNodes, updateNodeData, setEdgesAnimated],
+    [running, nodes.length, buildPayload, setNodes, updateNodeData, setEdgesAnimated, toast],
   )
 
   const run = useCallback(() => startRun({ target: null, force: [] }), [startRun])
   // ▶ trên node: chạy tới node đó + ép chính nó chạy lại (xem output / sinh ảnh mới).
   const runNode = useCallback((id) => startRun({ target: id, force: [id] }), [startRun])
-  // ▶ Chạy (harness): lặp critic-refine tới khi đạt/hết limit, xuất best + report.
-  const runHarness = useCallback(() => {
-    setShowHarness(false)
-    startRun({
-      harness: {
-        enabled: true,
-        // Number.isFinite → tôn trọng giá trị 0 hợp lệ (vd ngưỡng 0 = luôn đạt vòng 1),
-        // chỉ rơi về mặc định khi ô trống/không phải số.
-        max_iterations: Number.isFinite(Number(harnessCfg.max_iterations)) && harnessCfg.max_iterations !== ''
-          ? Number(harnessCfg.max_iterations) : 3,
-        pass_score: Number.isFinite(Number(harnessCfg.pass_score)) && harnessCfg.pass_score !== ''
-          ? Number(harnessCfg.pass_score) : 8,
-        criteria: harnessCfg.criteria || '',
-        critic_provider: harnessCfg.critic_provider || '',
-      },
-    })
-  }, [startRun, harnessCfg])
 
   const stop = useCallback(() => {
     if (wsRef.current) wsRef.current.onclose = null // dừng chủ động — không báo "mất kết nối"
     wsRef.current?.close()
     setRunning(false)
     setRunningNodeId(null)
-    setStatusMsg('Đã dừng.')
+    setStatusMsg('')
+    toast.info('Đã dừng')
     setEdgesAnimated(false)
-  }, [setEdgesAnimated])
+  }, [setEdgesAnimated, toast])
 
   const clearCache = useCallback(async () => {
     try {
       await clearCacheApi()
-      setStatusMsg('Đã xóa cache')
+      setStatusMsg('')
+      toast.success('Đã xóa cache')
       setNodes((nds) => nds.map((n) => ({ ...n, data: { ...n.data, cached: false } })))
     } catch (e) {
-      setStatusMsg(`✗ ${e.message}`)
+      setStatusMsg('')
+      toast.error(e.message)
     }
-  }, [setNodes])
+  }, [setNodes, toast])
+
+  // Dàn node tự động (trái→phải) cho gọn rồi fit khung nhìn. requestAnimationFrame
+  // để React Flow kịp đo lại kích thước node mới đặt trước khi fitView.
+  const arrange = useCallback(() => {
+    setNodes((nds) => layoutNodes(nds, edges))
+    requestAnimationFrame(() => fitView({ padding: 0.2, duration: 300 }))
+  }, [setNodes, edges, fitView])
 
   // Giá trị context cho WorkflowNode (▶ node + biết trạng thái bận để disable).
   const runCtx = useMemo(() => ({ runNode, runningNodeId, running }), [runNode, runningNodeId, running])
@@ -439,7 +429,8 @@ export default function App() {
   const doSave = useCallback(async (overwrite) => {
     try {
       const { saved } = await saveWorkflow(buildPayload(), { overwrite })
-      setStatusMsg(`Đã lưu "${saved}"`)
+      setStatusMsg('')
+      toast.success(`Đã lưu "${saved}"`)
       setSavedList(await listWorkflows())
     } catch (e) {
       // Backend trả 409 (tên đã tồn tại) → hỏi xác nhận ghi đè rồi lưu lại.
@@ -447,13 +438,14 @@ export default function App() {
         if (confirm(`Workflow "${workflowName}" đã tồn tại. Ghi đè?`)) {
           await doSave(true)
         } else {
-          setStatusMsg('Đã hủy lưu')
+          toast.info('Đã hủy lưu')
         }
         return
       }
-      setStatusMsg(`✗ ${e.message}`)
+      setStatusMsg('')
+      toast.error(e.message)
     }
-  }, [buildPayload, workflowName])
+  }, [buildPayload, workflowName, toast])
 
   const save = useCallback(() => doSave(false), [doSave])
 
@@ -462,11 +454,13 @@ export default function App() {
     try {
       await deleteWorkflow(name)
       setSavedList(await listWorkflows())
-      setStatusMsg(`Đã xóa "${name}"`)
+      setStatusMsg('')
+      toast.success(`Đã xóa "${name}"`)
     } catch (e) {
-      setStatusMsg(`✗ ${e.message}`)
+      setStatusMsg('')
+      toast.error(e.message)
     }
-  }, [])
+  }, [toast])
 
   const load = useCallback(
     async (name) => {
@@ -482,6 +476,9 @@ export default function App() {
               id: n.id,
               type: 'wf',
               position: { x: n.position?.x ?? 0, y: n.position?.y ?? 0 },
+              // Khôi phục kích thước đã lưu; workflow cũ chưa có size → mặc định 256px.
+              width: n.width ?? 256,
+              ...(n.height ? { height: n.height } : {}),
               data: { meta: metaByType[n.type], params: n.params, status: 'idle' },
             })),
         )
@@ -495,13 +492,15 @@ export default function App() {
             targetHandle: `in-${e.targetHandle}`,
           })),
         )
-        setStatusMsg(`Đã tải "${name}"`)
+        setStatusMsg('')
+        toast.success(`Đã tải "${name}"`)
         setShowWorkflowBrowser(false)
       } catch (e) {
-        setStatusMsg(`✗ ${e.message}`)
+        setStatusMsg('')
+        toast.error(e.message)
       }
     },
-    [metaByType, setNodes, setEdges],
+    [metaByType, setNodes, setEdges, toast],
   )
 
   // Tô màu status chip theo nội dung thông báo (✓ xanh, ✗/⚠ đỏ, đang chạy xanh dương)
@@ -523,44 +522,6 @@ export default function App() {
           <button className="btn primary" onClick={run} disabled={running || nodes.length === 0}>
             <PlayIcon size={13} /> Chạy
           </button>
-          <div className="wf-menu">
-            <button
-              className="btn"
-              title="Chạy harness: AI lặp tự chấm + sửa tới khi đạt (cần critic Gemini)"
-              onClick={() => setShowHarness((s) => !s)}
-              disabled={running || nodes.length === 0}
-            >
-              <PlayIcon size={12} /> Harness
-              <ChevronDownIcon size={12} className={`chev${showHarness ? ' open' : ''}`} />
-            </button>
-            {showHarness && (
-              <div className="wf-menu-panel" style={{ padding: 12, width: 260, gap: 8, display: 'flex', flexDirection: 'column' }}>
-                <label className="harness-field">
-                  Số vòng tối đa
-                  <input type="number" min={1} max={20} value={harnessCfg.max_iterations}
-                    onChange={(e) => setHarnessCfg((c) => ({ ...c, max_iterations: e.target.value }))} />
-                </label>
-                <label className="harness-field">
-                  Ngưỡng đạt (0–10)
-                  <input type="number" min={0} max={10} step={0.5} value={harnessCfg.pass_score}
-                    onChange={(e) => setHarnessCfg((c) => ({ ...c, pass_score: e.target.value }))} />
-                </label>
-                <label className="harness-field">
-                  Critic (cấu hình Gemini; trống = dùng provider node sinh)
-                  <input type="text" placeholder="vd: Google - Gemini" value={harnessCfg.critic_provider}
-                    onChange={(e) => setHarnessCfg((c) => ({ ...c, critic_provider: e.target.value }))} />
-                </label>
-                <label className="harness-field">
-                  Tiêu chí đạt (tùy chọn)
-                  <textarea rows={2} placeholder="vd: mặt rõ, đúng người, nền sạch" value={harnessCfg.criteria}
-                    onChange={(e) => setHarnessCfg((c) => ({ ...c, criteria: e.target.value }))} />
-                </label>
-                <button className="btn primary" onClick={runHarness} disabled={running || nodes.length === 0}>
-                  <PlayIcon size={12} /> Chạy harness
-                </button>
-              </div>
-            )}
-          </div>
           {running && (
             <button className="btn danger" onClick={stop}><StopIcon size={11} /> Dừng</button>
           )}
@@ -572,6 +533,9 @@ export default function App() {
             onClick={() => { listWorkflows().then(setSavedList).catch(() => {}); setShowWorkflowBrowser(true) }}
           >
             <FolderIcon size={14} /> Mở workflow
+          </button>
+          <button className="btn" onClick={() => setShowImageLibrary(true)}>
+            <ImageIcon size={14} /> Thư viện ảnh
           </button>
           <button className="btn" onClick={() => setShowSettings(true)}>
             <GearIcon size={14} /> Cài đặt
@@ -605,21 +569,6 @@ export default function App() {
             <TrashIcon size={14} /> Xóa hết
           </button>
         </div>
-        {(harnessLog.length > 0 || harnessReport) && (
-          <div className="harness-panel">
-            <div className="harness-panel-title">
-              Harness {harnessReport ? `· best vòng ${(harnessReport.best_iteration ?? 0) + 1} (điểm ${harnessReport.best_score})` : '· đang chạy...'}
-              {harnessReport?.stopped_early && <span className="harness-warn"> · dừng sớm: {harnessReport.stopped_early}</span>}
-              <button className="btn ghost" onClick={() => { setHarnessLog([]); setHarnessReport(null) }}>✕</button>
-            </div>
-            {harnessLog.map((it) => (
-              <div key={it.iteration} className={`harness-row${it.passed ? ' passed' : ''}`}>
-                <b>Vòng {it.iteration + 1}: {it.score}{it.passed ? ' ✓' : ''}</b>
-                {it.feedback && <span className="harness-fb"> — {it.feedback}</span>}
-              </div>
-            ))}
-          </div>
-        )}
         <RunContext.Provider value={runCtx}>
           <ReactFlow
             nodes={nodes}
@@ -642,7 +591,15 @@ export default function App() {
             defaultEdgeOptions={{ type: 'deletable', style: { strokeWidth: 1.8 } }}
           >
             <Background gap={22} size={1.4} color={gridColor} />
-            <Controls />
+            <Controls>
+              <ControlButton
+                onClick={arrange}
+                title="Dàn node tự động cho gọn (trái → phải) rồi căn khung nhìn"
+                disabled={nodes.length === 0}
+              >
+                <LayoutIcon size={15} />
+              </ControlButton>
+            </Controls>
             <MiniMap pannable zoomable />
           </ReactFlow>
         </RunContext.Provider>
@@ -660,6 +617,9 @@ export default function App() {
           onDelete={removeWorkflow}
           onClose={() => setShowWorkflowBrowser(false)}
         />
+      )}
+      {showImageLibrary && (
+        <ImageLibraryModal onClose={() => setShowImageLibrary(false)} />
       )}
       {connectMenu && (
         <ConnectNodeMenu

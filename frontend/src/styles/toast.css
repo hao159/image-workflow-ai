@@ -1,0 +1,73 @@
+/* ---------- Toast thông báo (góc trên-giữa) ----------
+   Bám token semantic của theme (--ok/--err/--warn/--run, --bg-panel...) nên tự
+   đổi đúng theo Sáng/Tối. Đặt trên cùng (z cao) để luôn nhìn thấy. Khu vực giữa
+   phía trên đang trống (toolbar full-width ở trên, Controls dưới-trái,
+   MiniMap dưới-phải). */
+.toast-stack {
+  position: fixed;
+  top: 64px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: stretch;
+  width: max-content;
+  max-width: min(92vw, 460px);
+  pointer-events: none; /* click xuyên khoảng trống; từng toast bật pointer lại */
+}
+
+.toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 12px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--text);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-strong);
+  border-left-width: 3px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  animation: toast-in 0.18s ease-out;
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.toast-icon { display: inline-flex; flex-shrink: 0; }
+.toast-msg { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+
+.toast-close {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--text-faint);
+  cursor: pointer;
+  padding: 2px;
+  border-radius: var(--radius-sm);
+  transition: color 0.12s, background 0.12s;
+}
+.toast-close:hover { color: var(--text); background: var(--bg-hover); }
+
+/* Viền trái + màu icon theo loại */
+.toast-success { border-left-color: var(--ok); }
+.toast-success .toast-icon { color: var(--ok); }
+.toast-error { border-left-color: var(--err); }
+.toast-error .toast-icon { color: var(--err); }
+.toast-warn { border-left-color: var(--warn); }
+.toast-warn .toast-icon { color: var(--warn); }
+.toast-info { border-left-color: var(--run); }
+.toast-info .toast-icon { color: var(--run); }
+
+@media (prefers-reduced-motion: reduce) {
+  .toast { animation: none; }
+}

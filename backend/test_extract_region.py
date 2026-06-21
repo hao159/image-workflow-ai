@@ -11,8 +11,7 @@ from PIL import Image
 
 from app.nodes import extract_region as er_module
 from app.nodes.extract_region import ExtractRegionNode, crop_region
-from app.providers.base import (ImageProvider, ProviderError,
-                                parse_bbox_json, parse_critique_json)
+from app.providers.base import ImageProvider, ProviderError, parse_bbox_json
 
 
 def _png(w, h, color=(120, 80, 200)):
@@ -135,16 +134,6 @@ def test_parse_bbox_not_found_or_invalid_raises():
             assert False, f"{t} phải lỗi"
         except ProviderError:
             pass
-
-
-def test_parse_critique_basic():
-    d = parse_critique_json('{"score":7.5,"passed":false,"feedback":"sửa nền"}')
-    assert d["score"] == 7.5 and d["passed"] is False and "nền" in d["feedback"]
-
-
-def test_parse_critique_fences_and_defaults():
-    d = parse_critique_json('```\n{"score":9}\n```')
-    assert d["score"] == 9.0 and d["feedback"] == "" and d["passed"] is False
 
 
 def test_node_params_present():

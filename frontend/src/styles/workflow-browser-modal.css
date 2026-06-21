@@ -169,9 +169,6 @@
 .exec-node-dot.running { background: var(--accent); }
 .exec-node-id { color: var(--text-dim); }
 
-.exec-harness-row { font-size: 12px; padding: 3px 0; }
-.exec-harness-row.passed { color: var(--ok); }
-.exec-harness-fb { color: var(--text-faint); }
 .exec-error-box {
   font-size: 12px;
   color: var(--err);

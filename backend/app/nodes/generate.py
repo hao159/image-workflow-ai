@@ -20,7 +20,6 @@ class GenerateImageNode(BaseNode):
         Param("prompt", "textarea", "Prompt", default="",
               supplement_for="prompt", supplement_label="Prompt bổ sung"),
         Param("aspect_ratio", "select", "Tỷ lệ khung", default="1:1", options=ASPECT_RATIOS),
-        Param("negative_prompt", "textarea", "Negative prompt (ComfyUI)", default=""),
         Param("image_label", "text", "Mô tả ảnh", default="", is_image_label=True),
     ]
 
@@ -33,6 +32,5 @@ class GenerateImageNode(BaseNode):
             prompt,
             model=default_model,
             aspect_ratio=params.get("aspect_ratio") or "1:1",
-            negative_prompt=params.get("negative_prompt") or "",
         )
         return {"image": image}

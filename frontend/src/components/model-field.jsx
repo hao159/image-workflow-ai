@@ -7,11 +7,11 @@ const MANUAL = '__manual__'
 const dedupe = (...lists) => [...new Set(lists.flat().filter(Boolean))]
 
 // Gợi ý năng lực model cho dropdown (hiển thị-only, không đổi value lưu).
-// comfyui = checkpoint ảnh; codex = host tool gen ảnh; tên chứa image/dall/imagen
-// = model ảnh; còn lại coi là text/vision. Heuristic — chỉ để nhìn phát biết.
+// codex = host tool gen ảnh; tên chứa image/dall/imagen = model ảnh; còn lại coi
+// là text/vision. Heuristic — chỉ để nhìn phát biết.
 function capabilityTag(provider, model) {
   if (!model) return ''
-  if (provider === 'comfyui' || provider === 'codex') return 'ảnh'
+  if (provider === 'codex') return 'ảnh'
   const m = model.toLowerCase()
   if (m.includes('image') || m.includes('dall') || m.includes('imagen')) return 'ảnh'
   return 'text'

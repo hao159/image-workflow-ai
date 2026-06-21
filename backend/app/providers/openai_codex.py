@@ -13,7 +13,7 @@ import uuid
 import httpx
 
 from .base import (ImageProvider, ProviderError, numbered_image_caption,
-                   parse_bbox_json, parse_critique_json)
+                   parse_bbox_json)
 from .codex_debug_log import CodexDebugLog
 # _parse_image_from_sse re-export tại đây cho test_codex.py import  # noqa: F401
 from .codex_sse_parsers import _parse_image_from_sse, _parse_text_from_sse
@@ -98,18 +98,6 @@ class OpenAICodexProvider(ImageProvider):
             'y_max>y_min), box tight around the object. Not found → {"found": false}.')
         return parse_bbox_json(self._vision_json(image, instruction, model),
                                scale=999.0, target=target)
-
-    def critique_image(self, image: bytes, goal: str, criteria: str = "", *,
-                       model: str = "", **options) -> dict:
-        """Chấm ảnh vs mục tiêu (harness critic) qua model vision → JSON."""
-        crit = f"\nUser acceptance criteria: {criteria}" if (criteria or "").strip() else ""
-        instruction = (
-            "You are a strict judge scoring an AI-generated image against a GOAL.\n"
-            f"Goal: {goal}{crit}\n"
-            'Return JSON {"score": 0..10 number, "passed": true|false, '
-            '"feedback": "short, concrete fix to reach the goal"}. '
-            "passed=true only if the image is product-ready for the goal.")
-        return parse_critique_json(self._vision_json(image, instruction, model))
 
     # ---------- internal ----------
 

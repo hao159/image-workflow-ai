@@ -25,8 +25,6 @@ class EditImageNode(BaseNode):
         # Đè chỉ thị identity mặc định (khối "Ảnh N") khi cần ý đồ khác face-swap.
         # Trống → giữ chỉ thị mặc định (backward compat). Chỉ tác dụng khi có nhãn ảnh.
         Param("instruction", "textarea", "Chỉ thị hệ thống (tùy chọn)", default=""),
-        Param("denoise", "number", "Denoise (ComfyUI)", default=0.6,
-              min=0.1, max=1.0, step=0.05),
     ]
 
     def run(self, inputs, params):
@@ -51,11 +49,10 @@ class EditImageNode(BaseNode):
                                      instruction_override=params.get("instruction"))
         provider, default_model = resolve_model_config(params["provider"])
         # image_labels (song song images) cho provider xen caption trước từng ảnh
-        # (Codex/Gemini). Provider không hỗ trợ (OpenAI/ComfyUI) bỏ qua qua **options.
+        # (Codex/Gemini). Provider không hỗ trợ (OpenAI) bỏ qua qua **options.
         result = provider.edit(
             images, prompt,
             model=default_model,
-            denoise=float(params.get("denoise") or 0.6),
             image_labels=labels,
         )
         return {"image": result}

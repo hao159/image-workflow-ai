@@ -127,7 +127,7 @@ def test_sse_parser_no_image_raises():
 def test_provider_options_no_raw_providers():
     # Dropdown node chỉ chứa config đặt tên, không còn provider thô
     opts = provider_options()
-    for raw in ("gemini", "openai", "codex", "comfyui"):
+    for raw in ("gemini", "openai", "codex"):
         assert raw not in opts, f"provider thô '{raw}' lọt vào dropdown"
 
 
@@ -209,17 +209,6 @@ def test_enhance_prompt_node():
         raise AssertionError("thiếu prompt phải raise ValueError")
 
 
-def test_comfyui_generate_text_raises():
-    # Provider không có LLM text phải báo lỗi rõ, không crash khó hiểu
-    p = make_provider("comfyui")
-    try:
-        p.generate_text("x")
-    except Exception as e:
-        assert "không hỗ trợ sinh text" in str(e)
-    else:
-        raise AssertionError("comfyui generate_text phải raise")
-
-
 def test_oauth_status_shape():
     st = oauth.status()
     assert "logged_in" in st
@@ -291,11 +280,7 @@ def test_gemini_edit_interleaves_image_labels():
     assert out == _PNG_MAGIC
 
 
-# ---------- vision: detect_region + critique_image (codex là model vision) ----------
-
-def test_codex_supports_critique():
-    assert OpenAICodexProvider.supports_critique() is True
-
+# ---------- vision: detect_region (codex là model vision) ----------
 
 def test_codex_detect_region_parses_and_sends_image():
     p = OpenAICodexProvider()
@@ -313,13 +298,6 @@ def test_codex_detect_region_parses_and_sends_image():
     content = captured["body"]["input"][0]["content"]
     assert any(c["type"] == "input_image" for c in content)
     assert any(c["type"] == "input_text" for c in content)
-
-
-def test_codex_critique_image_parses():
-    p = OpenAICodexProvider()
-    p._stream_request = lambda body, parse: '{"score": 6, "passed": false, "feedback": "đổi nền"}'
-    d = p.critique_image(b"imgbytes", "vẽ mèo phi hành gia")
-    assert d["score"] == 6.0 and d["passed"] is False and "nền" in d["feedback"]
 
 
 def test_codex_detect_region_not_found_raises():

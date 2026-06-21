@@ -36,16 +36,6 @@ def parse_bbox_json(text: str, scale: float = 1.0, target: str = "") -> list[flo
     return [float(v) / scale for v in box]
 
 
-def parse_critique_json(text: str) -> dict:
-    """Parse {"score":0..10,"passed":bool,"feedback":str} (harness critic), robust."""
-    data = _extract_json_obj(text)
-    return {
-        "score": float(data.get("score") or 0.0),
-        "passed": bool(data.get("passed")),
-        "feedback": str(data.get("feedback") or ""),
-    }
-
-
 def numbered_image_caption(index: int, label: str) -> str:
     """Caption '<Ảnh N>: <mô tả>' xen NGAY TRƯỚC ảnh khi gửi provider đa-ảnh.
 
@@ -74,25 +64,10 @@ class ImageProvider(ABC):
     def generate_text(self, prompt: str, *, model: str = "", system: str = "",
                       **options) -> str:
         """Sinh text bằng LLM (vd: enhance prompt). Provider nào không có LLM
-        text (ComfyUI) dùng mặc định này — báo lỗi rõ thay vì crash khó hiểu."""
+        text dùng mặc định này — báo lỗi rõ thay vì crash khó hiểu."""
         raise ProviderError(
             f"Provider '{self.name}' không hỗ trợ sinh text. "
             "Chọn cấu hình Gemini / OpenAI / Codex cho node này.")
-
-    def critique_image(self, image: bytes, goal: str, criteria: str = "", *,
-                       model: str = "", **options) -> dict:
-        """Chấm ảnh so mục tiêu (harness critic) — trả {score:0..10, passed:bool,
-        feedback:str}. Provider không có vision (ComfyUI/OpenAI Images/Codex) dùng
-        mặc định này → báo lỗi rõ. Engine kiểm tra `supports_critique()` TRƯỚC khi
-        chạy nên không tốn lượt sinh ảnh rồi mới chết."""
-        raise ProviderError(
-            f"Provider '{self.name}' không hỗ trợ chấm ảnh (harness). "
-            "Cấu hình một critic Gemini trong ⚙ Cài đặt.")
-
-    @classmethod
-    def supports_critique(cls) -> bool:
-        """True nếu provider override critique_image (có vision chấm ảnh)."""
-        return cls.critique_image is not ImageProvider.critique_image
 
     def detect_region(self, image: bytes, target: str, *, model: str = "",
                       **options) -> list[float]:

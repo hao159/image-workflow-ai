@@ -63,6 +63,18 @@ export const TrashIcon = (p) => (
   </Svg>
 )
 export const ChevronDownIcon = (p) => <Svg {...p}><path d="m6 9 6 6 6-6" /></Svg>
+// Dàn node tự động: 3 khối nối nhau trái→phải, gợi ý sắp xếp gọn theo tầng.
+export const LayoutIcon = (p) => (
+  <Svg {...p}>
+    <rect x="2" y="9" width="6" height="6" rx="1" />
+    <rect x="16" y="4" width="6" height="6" rx="1" />
+    <rect x="16" y="14" width="6" height="6" rx="1" />
+    <path d="M8 12h4" />
+    <path d="M12 7v10" />
+    <path d="M12 7h4" />
+    <path d="M12 17h4" />
+  </Svg>
+)
 export const XIcon = (p) => <Svg {...p}><path d="M18 6 6 18" /><path d="m6 6 12 12" /></Svg>
 export const PlusIcon = (p) => <Svg {...p}><path d="M5 12h14" /><path d="M12 5v14" /></Svg>
 export const SearchIcon = (p) => (

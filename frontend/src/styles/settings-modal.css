@@ -116,11 +116,26 @@
   font-weight: 600;
 }
 
+/* Thanh tiêu đề trên bảng cấu hình: tên section + nút mở popup "Thêm cấu hình" */
+.config-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.config-section-head .settings-section-title { margin-bottom: 0; }
+.config-empty {
+  font-size: 12.5px;
+  color: var(--text-faint);
+  margin: 0 0 4px;
+}
+
 .config-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 12.5px;
-  margin-bottom: 16px;
+  margin-bottom: 4px;
 }
 .config-table th {
   text-align: left;
@@ -146,7 +161,16 @@
   flex-direction: column;
   gap: 11px;
 }
-.config-form-title { font-size: 13px; font-weight: 600; }
+/* Popup Thêm/Sửa cấu hình: nổi đè lên modal Cài đặt (z-index cao hơn).
+   Form bên trong bỏ nền card riêng vì .modal đã có nền + padding. */
+.config-modal-backdrop { z-index: 60; }
+.config-modal { width: 480px; }
+.config-form.in-modal {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+}
 .config-form label { display: flex; flex-direction: column; gap: 5px; }
 .config-form label span {
   font-size: 10.5px;

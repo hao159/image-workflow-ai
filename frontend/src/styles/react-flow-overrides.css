@@ -48,12 +48,16 @@
 .react-flow__controls-button {
   background: transparent;
   border-bottom: 1px solid var(--border);
+  /* fill = icon mặc định RF (path tô đầy); color = icon stroke (LayoutIcon) */
   fill: var(--text-dim);
-  width: 26px;
-  height: 26px;
+  color: var(--text-dim);
+  width: 32px;
+  height: 32px;
 }
+.react-flow__controls-button svg { max-width: 16px; max-height: 16px; }
 .react-flow__controls-button:last-child { border-bottom: none; }
-.react-flow__controls-button:hover { background: var(--bg-hover); fill: var(--text); }
+.react-flow__controls-button:hover { background: var(--bg-hover); fill: var(--text); color: var(--text); }
+.react-flow__controls-button:disabled { opacity: 0.45; cursor: not-allowed; }
 
 /* Bản đồ thu nhỏ */
 .react-flow__minimap {

@@ -56,12 +56,6 @@ class FakeProvider(ImageProvider):
                       **options) -> str:
         return f"[fake] {prompt[:120]}"
 
-    def critique_image(self, image: bytes, goal: str, criteria: str = "", *,
-                       model: str = "", **options) -> dict:
-        # Offline: luôn "đạt" để harness dừng ngay iteration 0 (không loop vô ích
-        # khi test thủ công --fake). Test tự động dùng stub riêng cho kịch bản loop.
-        return {"score": 9.0, "passed": True, "feedback": "[fake] đạt"}
-
     def detect_region(self, image: bytes, target: str, *, model: str = "",
                       **options) -> list[float]:
         # Offline: trả vùng giữa ảnh (50%) để test crop --fake không gọi mạng.

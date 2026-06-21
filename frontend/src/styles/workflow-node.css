@@ -6,10 +6,27 @@
   background: var(--bg-panel);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-lg);
-  width: 256px;
+  /* Lấp đầy wrapper của React Flow (kích thước do NodeResizer điều khiển qua
+     node.width/height). Node mới chưa resize có width mặc định 256px đặt ở
+     node.width trong App.addNode — wrapper rộng 256, node bám theo. */
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
   font-size: 12.5px;
   box-shadow: var(--shadow-sm);
   transition: border-color 0.15s, box-shadow 0.2s;
+}
+/* Control resize của NodeResizer: ẩn đường kẻ mặc định, bo các tay nắm góc
+   theo màu accent để khớp theme sáng/tối. */
+.wf-node .react-flow__resize-control.line {
+  border-color: transparent;
+}
+.wf-node .react-flow__resize-control.handle {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--accent);
+  border: 1px solid var(--bg-panel);
 }
 .react-flow__node.selected .wf-node {
   border-color: var(--accent);

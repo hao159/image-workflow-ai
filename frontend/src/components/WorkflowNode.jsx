@@ -1,5 +1,5 @@
 import { memo } from 'react'
-import { Handle, Position, useReactFlow, useNodeConnections } from '@xyflow/react'
+import { Handle, Position, NodeResizer, useReactFlow, useNodeConnections } from '@xyflow/react'
 import { categoryStyle } from '../node-category-styles.js'
 import { resolveRunEffect } from '../ui-settings.js'
 import { useRun } from '../RunContext.jsx'
@@ -26,7 +26,7 @@ function FileResultCard({ url }) {
   )
 }
 
-function WorkflowNode({ id, data }) {
+function WorkflowNode({ id, data, selected }) {
   const { updateNodeData, deleteElements } = useReactFlow()
   const { runNode, running } = useRun()
   const { openViewer } = useImageViewer()
@@ -67,6 +67,8 @@ function WorkflowNode({ id, data }) {
       className={`wf-node status-${status || 'idle'}${effect ? ` effect-${effect}` : ''}`}
       style={{ '--node-accent': cat.color }}
     >
+      {/* Kéo mép/góc để resize node; chỉ hiện control khi node được chọn. */}
+      <NodeResizer minWidth={220} minHeight={120} isVisible={selected} />
       <div className="wf-node-header">
         <span className="wf-node-icon"><cat.Icon size={12} /></span>
         <span className="wf-node-title">{meta.title}</span>

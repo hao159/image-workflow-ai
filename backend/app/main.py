@@ -45,7 +45,6 @@ def get_providers():
         "configured": {
             "gemini": bool(config.GEMINI_API_KEY),
             "openai": bool(config.OPENAI_API_KEY),
-            "comfyui": config.COMFYUI_URL,
         },
     }
 
@@ -169,6 +168,65 @@ def _safe_file(directory, name: str):
     return path
 
 
+_IMAGE_EXTS = {"png", "jpg", "jpeg", "webp", "gif", "bmp"}
+
+
+def _list_images(directory, url_prefix: str):
+    # Liệt kê file ảnh trong thư mục → mới nhất trước (theo mtime). Bỏ file không phải ảnh.
+    if not directory.is_dir():
+        return []
+    items = []
+    for p in directory.iterdir():
+        if not p.is_file() or p.suffix.lower().lstrip(".") not in _IMAGE_EXTS:
+            continue
+        st = p.stat()
+        items.append({
+            "name": p.name,
+            "url": f"{url_prefix}/{p.name}",
+            "size": st.st_size,
+            "modified": time.strftime("%Y-%m-%d %H:%M", time.localtime(st.st_mtime)),
+            "_mtime": st.st_mtime,
+        })
+    items.sort(key=lambda x: x["_mtime"], reverse=True)
+    for it in items:
+        del it["_mtime"]
+    return items
+
+
+# List routes registered before /{name} catch-alls so they match first.
+@app.get("/api/uploads")
+def list_uploads():
+    return _list_images(config.UPLOADS_DIR, "/api/uploads")
+
+
+@app.get("/api/outputs")
+def list_outputs():
+    return _list_images(config.OUTPUTS_DIR, "/api/outputs")
+
+
+# Delete routes registered before GET /{name} so Starlette finds the right method
+# when a path-traversal attempt (e.g. "../../x") is passed as {name}.
+@app.delete("/api/uploads/{name:path}")
+def delete_upload(name: str):
+    # {name:path} captures encoded slashes (%2f) so path-traversal attempts reach this
+    # handler and are rejected by _safe_file instead of leaking to the SPA catch-all.
+    path = _safe_file(config.UPLOADS_DIR, name)
+    if not path:
+        return JSONResponse({"error": "Không tìm thấy file."}, status_code=404)
+    path.unlink(missing_ok=True)
+    return {"deleted": name}
+
+
+@app.delete("/api/outputs/{name:path}")
+def delete_output(name: str):
+    # Same rationale as delete_upload above.
+    path = _safe_file(config.OUTPUTS_DIR, name)
+    if not path:
+        return JSONResponse({"error": "Không tìm thấy file."}, status_code=404)
+    path.unlink(missing_ok=True)
+    return {"deleted": name}
+
+
 @app.get("/api/uploads/{name}")
 def get_upload(name: str):
     path = _safe_file(config.UPLOADS_DIR, name)
@@ -284,29 +342,20 @@ async def ws_run(ws: WebSocket):
             if isinstance(data, dict) and "workflow" in data:  # envelope
                 req = RunRequest.model_validate(data)
                 workflow, target, force = req.workflow, req.target, frozenset(req.force)
-                harness = req.harness
             else:                                               # workflow thuần
                 workflow, target, force = Workflow.model_validate(data), None, frozenset()
-                harness = None
         except (ValidationError, ValueError) as e:
             await ws.send_text(RunEvent(
                 type="run_error", message=f"Workflow không hợp lệ: {e}").model_dump_json())
             return
 
-        # Chỉ ghi lịch sử cho ▶ Chạy (full) và ▶ Harness — KHÔNG ghi chạy 1 node lẻ
-        # (target≠None & không harness) để lịch sử sạch.
-        if harness is not None and getattr(harness, "enabled", False):
-            record_mode = "harness"
-        elif target is None:
-            record_mode = "full"
-        else:
-            record_mode = None
+        # Chỉ ghi lịch sử cho ▶ Chạy (full) — KHÔNG ghi chạy 1 node lẻ
+        # (target≠None) để lịch sử sạch.
+        record_mode = "full" if target is None else None
 
-        # Gom dữ liệu run để lưu DB: trạng thái từng node, sha ảnh kết quả, điểm harness.
+        # Gom dữ liệu run để lưu DB: trạng thái từng node, sha ảnh kết quả.
         nodes_status: dict[str, str] = {}
         output_refs: list[str] = []
-        harness_iters: list[dict] = []
-        harness_best: dict = {}
         outcome = {"status": "running", "error": ""}  # cập nhật khi run_finished/run_error
 
         def _record(event: RunEvent):
@@ -320,13 +369,6 @@ async def ws_run(ws: WebSocket):
                         output_refs.append(meta["sha"])
             elif event.type == "node_error" and event.node_id:
                 nodes_status[event.node_id] = "error"
-            elif event.type == "harness_iteration":
-                harness_iters.append({
-                    "iteration": event.iteration, "score": event.score,
-                    "passed": event.passed, "feedback": event.message or "",
-                })
-            elif event.type == "harness_report" and event.report:
-                harness_best.update(event.report)
             elif event.type == "run_finished":
                 outcome["status"] = "success"
             elif event.type == "run_error":
@@ -343,8 +385,7 @@ async def ws_run(ws: WebSocket):
         started = time.monotonic()
         try:
             try:
-                await run_workflow(workflow, emit, target=target, force_ids=force,
-                                   harness=harness)
+                await run_workflow(workflow, emit, target=target, force_ids=force)
             except WebSocketDisconnect:
                 raise
             except Exception as e:  # noqa: BLE001 — lỗi engine ngoài dự kiến phải về UI
@@ -356,9 +397,7 @@ async def ws_run(ws: WebSocket):
             if exec_id is not None:
                 if outcome["status"] == "running":
                     outcome["status"] = "stopped"
-                detail = {"nodes": nodes_status, "output_refs": output_refs,
-                          "harness": {**harness_best, "iterations": harness_iters}
-                          if (harness_iters or harness_best) else {}}
+                detail = {"nodes": nodes_status, "output_refs": output_refs}
                 db.finish_execution(exec_id, outcome["status"], outcome["error"],
                                     detail, int((time.monotonic() - started) * 1000))
     except WebSocketDisconnect:

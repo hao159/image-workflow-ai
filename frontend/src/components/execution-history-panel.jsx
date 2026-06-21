@@ -122,14 +122,12 @@ export default function ExecutionHistoryPanel({ workflowName }) {
   )
 }
 
-// Chi tiết 1 lần chạy: ảnh kết quả + vòng harness + trạng thái node + lỗi.
+// Chi tiết 1 lần chạy: ảnh kết quả + trạng thái node + lỗi.
 function ExecDetail({ exec, openViewer }) {
   const [broken, setBroken] = useState(() => new Set()) // sha ảnh đã bị dọn khỏi cache
   const detail = exec.detail || {}
   const refs = detail.output_refs || []
   const nodes = detail.nodes || {}
-  const harness = detail.harness || {}
-  const iterations = harness.iterations || []
 
   const markBroken = (sha) => setBroken((s) => new Set(s).add(sha))
 
@@ -160,22 +158,6 @@ function ExecDetail({ exec, openViewer }) {
           </div>
         )}
       </div>
-
-      {iterations.length > 0 && (
-        <div>
-          <div className="exec-subtitle">
-            Harness{harness.best_score != null
-              ? ` · best vòng ${(harness.best_iteration ?? 0) + 1} (điểm ${harness.best_score})`
-              : ''}
-          </div>
-          {iterations.map((it) => (
-            <div key={it.iteration} className={`exec-harness-row${it.passed ? ' passed' : ''}`}>
-              <b>Vòng {(it.iteration ?? 0) + 1}: {it.score}{it.passed ? ' ✓' : ''}</b>
-              {it.feedback && <span className="exec-harness-fb"> — {it.feedback}</span>}
-            </div>
-          ))}
-        </div>
-      )}
 
       {Object.keys(nodes).length > 0 && (
         <div>
