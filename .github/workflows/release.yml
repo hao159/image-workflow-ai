@@ -60,21 +60,23 @@ jobs:
           python -c "import shutil; shutil.make_archive('ImageWorkflow-windows', 'zip', 'dist', 'ImageWorkflow')"
           if ($LASTEXITCODE -ne 0) { throw "packaging failed" }
 
-      # --- Linux (bash + python3; 'python' thường không được symlink trên distro) ---
+      # --- Linux (bash) ---
+      # Dùng 'python3.12' tường minh: 'python3' mặc định trên runner là 3.8 (quá cũ
+      # cho pillow>=11). Cài qua deadsnakes: python3.12 + python3.12-venv.
       - name: Build & package (Linux)
         if: matrix.label == 'linux'
         shell: bash
         run: |
           set -euo pipefail
-          python3 --version
+          python3.12 --version
           node --version
           npm --version
-          python3 -m venv backend/.venv
+          python3.12 -m venv backend/.venv
           backend/.venv/bin/python -m pip install --upgrade pip
           backend/.venv/bin/python -m pip install -r backend/requirements.txt
           npm ci --prefix frontend
           bash build/build.sh
-          python3 -c "import shutil; shutil.make_archive('ImageWorkflow-linux', 'zip', 'dist', 'ImageWorkflow')"
+          backend/.venv/bin/python -c "import shutil; shutil.make_archive('ImageWorkflow-linux', 'zip', 'dist', 'ImageWorkflow')"
 
       # Khi chạy tay (workflow_dispatch): lưu artifact để tải kiểm thử, KHÔNG release.
       - name: Upload build artifact
