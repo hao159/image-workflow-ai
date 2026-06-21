@@ -174,6 +174,8 @@ _IMAGE_EXTS = {"png", "jpg", "jpeg", "webp", "gif", "bmp"}
 
 def _list_images(directory, url_prefix: str):
     # Liệt kê file ảnh trong thư mục → mới nhất trước (theo mtime). Bỏ file không phải ảnh.
+    if not directory.is_dir():
+        return []
     items = []
     for p in directory.iterdir():
         if not p.is_file() or p.suffix.lower().lstrip(".") not in _IMAGE_EXTS:
@@ -212,7 +214,7 @@ def delete_upload(name: str):
     path = _safe_file(config.UPLOADS_DIR, name)
     if not path:
         return JSONResponse({"error": "Không tìm thấy file."}, status_code=404)
-    path.unlink()
+    path.unlink(missing_ok=True)
     return {"deleted": name}
 
 
@@ -222,7 +224,7 @@ def delete_output(name: str):
     path = _safe_file(config.OUTPUTS_DIR, name)
     if not path:
         return JSONResponse({"error": "Không tìm thấy file."}, status_code=404)
-    path.unlink()
+    path.unlink(missing_ok=True)
     return {"deleted": name}
 
 
