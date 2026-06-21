@@ -84,6 +84,15 @@ Double-click để chạy → tự bật server `127.0.0.1:8000` + mở trình d
 **Release đa nền tảng:** đẩy tag (`git push origin v0.1.0`) → GitHub Actions build
 Windows + macOS + Linux rồi đính file zip vào Release (`.github/workflows/release.yml`).
 
+> **macOS — lần đầu chạy:** app chưa được Apple notarize nên macOS chặn với thông báo
+> *"không thể kiểm tra phần mềm độc hại"*. File tải về bị gắn cờ *quarantine*; gỡ một lần
+> rồi chạy bình thường:
+>
+> ```bash
+> xattr -dr com.apple.quarantine ImageWorkflow   # thư mục giải nén từ zip
+> ./ImageWorkflow/ImageWorkflow
+> ```
+
 ## Các node có sẵn
 
 | Node | Nhóm | Chức năng |

@@ -32,6 +32,18 @@ echo "==> [3/3] PyInstaller (onedir)..."
     --workpath "$ROOT/build/pyinstaller-work"
 
 BIN="$ROOT/dist/ImageWorkflow/ImageWorkflow"
+
+# macOS: ad-hoc ký để app chạy được trên Apple Silicon (arm64 BẮT BUỘC mọi mach-O có
+# chữ ký mới nạp được). Ký mã lồng bên trong (.so/.dylib) trước rồi mới ký binary chính.
+# LƯU Ý: ad-hoc KHÔNG vượt Gatekeeper cho file tải về — người dùng vẫn phải gỡ cờ
+# quarantine một lần: xattr -dr com.apple.quarantine ImageWorkflow (xem README).
+if [ "$(uname)" = "Darwin" ]; then
+    echo "==> [macOS] Ad-hoc code signing..."
+    find "$ROOT/dist/ImageWorkflow" -type f \( -name '*.so' -o -name '*.dylib' \) \
+        -exec codesign --force --sign - {} + || true
+    codesign --force --sign - "$BIN" || true
+fi
+
 if [ -f "$BIN" ]; then
     echo ""
     echo "[OK] Đóng gói xong: $BIN"
