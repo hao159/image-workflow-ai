@@ -137,3 +137,29 @@ export async function startOpenAIOAuth() {
   if (!res.ok) throw new Error(body.error || 'Đăng nhập OpenAI thất bại.')
   return body
 }
+
+// ---------- Thư viện ảnh (uploads/outputs) ----------
+
+export async function listUploads() {
+  const res = await fetch('/api/uploads')
+  if (!res.ok) throw new Error('Không tải được danh sách ảnh đầu vào.')
+  return res.json()
+}
+
+export async function listOutputs() {
+  const res = await fetch('/api/outputs')
+  if (!res.ok) throw new Error('Không tải được danh sách ảnh đầu ra.')
+  return res.json()
+}
+
+export async function deleteUpload(name) {
+  const res = await fetch(`/api/uploads/${encodeURIComponent(name)}`, { method: 'DELETE' })
+  if (!res.ok) throw new Error('Xóa ảnh thất bại.')
+  return res.json()
+}
+
+export async function deleteOutput(name) {
+  const res = await fetch(`/api/outputs/${encodeURIComponent(name)}`, { method: 'DELETE' })
+  if (!res.ok) throw new Error('Xóa ảnh thất bại.')
+  return res.json()
+}
