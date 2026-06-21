@@ -40,13 +40,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
+      # Self-hosted runners đã cài sẵn Python 3.12 + Node 20 trên PATH.
+      # Không dùng setup-python/setup-node vì chúng cố tải & cài tool vào
+      # tool-cache của runner — thao tác này hỏng trên runner tự host (quyền/registry).
+      # Bước này chỉ kiểm tra tool có sẵn để lỗi hiện rõ ràng nếu thiếu.
+      - name: Verify toolchain (pre-installed on runner)
+        shell: bash
+        run: |
+          python --version
+          node --version
+          npm --version
 
       - name: Setup backend venv + deps
         shell: bash
