@@ -7,7 +7,12 @@ on:
   push:
     tags:
       - "v*"
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag để tạo Release (vd: v0.1.0). Bỏ trống = chỉ build artifact, không release."
+        required: false
+        default: ""
 
 # Cần quyền ghi để tạo Release + upload asset.
 permissions:
@@ -140,10 +145,13 @@ jobs:
           name: ImageWorkflow-${{ matrix.label }}
           path: ImageWorkflow-${{ matrix.label }}.zip
 
-      # Khi push tag v*: đính file zip vào Release của tag (mỗi OS upload phần của nó).
-      - name: Attach to GitHub Release
-        if: startsWith(github.ref, 'refs/tags/')
+      # Đính file zip vào GitHub Release (mỗi OS upload phần của nó vào cùng 1 release):
+      #  - push tag v*      → tag_name rỗng → action dùng github.ref (tag vừa push).
+      #  - workflow_dispatch + nhập 'tag' → tạo release với tag đó tại commit hiện tại.
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && inputs.tag != '')
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ inputs.tag }}
           files: ImageWorkflow-${{ matrix.label }}.zip
           fail_on_unmatched_files: true
