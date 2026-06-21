@@ -38,6 +38,29 @@ jobs:
       # Windows không chắc có bash trên PATH (gây 'bash: command not found').
       # Windows: python / PowerShell. Linux: python3 / bash.
 
+      # --- Chẩn đoán môi trường runner (không làm fail job) ---
+      # In ra PATH + vị trí/phiên bản Python mà SERVICE runner thực sự thấy.
+      # Khác với shell tương tác của bạn nếu runner chưa restart sau khi cài Python.
+      - name: Diagnose runner Python (Windows)
+        if: matrix.label == 'windows'
+        shell: powershell
+        continue-on-error: true
+        run: |
+          Write-Host "=== PATH ==="; $env:PATH -split ';'
+          Write-Host "=== Get-Command python / py / python3 ==="
+          foreach ($c in 'python','py','python3') { Get-Command $c -ErrorAction SilentlyContinue | Select-Object Name,Source }
+          Write-Host "=== Thư mục Python đã cài ==="
+          Get-ChildItem 'C:\Program Files\Python*','C:\Python*',"$env:LOCALAPPDATA\Programs\Python" -ErrorAction SilentlyContinue | Select-Object FullName
+
+      - name: Diagnose runner Python (Linux)
+        if: matrix.label == 'linux'
+        shell: bash
+        continue-on-error: true
+        run: |
+          echo "=== PATH ==="; echo "$PATH"
+          echo "=== which -a ==="; which -a python3 python3.12 python || true
+          echo "=== versions ==="; python3 --version || true; python3.12 --version || true
+
       # --- Windows (PowerShell 5.1 luôn có sẵn) ---
       - name: Build & package (Windows)
         if: matrix.label == 'windows'
