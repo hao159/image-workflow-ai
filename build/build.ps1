@@ -1,4 +1,4 @@
-# Đóng gói Image Workflow thành ImageWorkflow.exe (onedir, Windows).
+﻿# Đóng gói Image Workflow thành ImageWorkflow.exe (onedir, Windows).
 #
 # Cách dùng:  pwsh -File build\build.ps1   (hoặc chạy trong PowerShell)
 # Yêu cầu:    backend\.venv đã cài requirements.txt; frontend đã npm install.
