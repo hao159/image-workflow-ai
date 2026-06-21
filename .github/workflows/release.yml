@@ -105,15 +105,21 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # pyenv: runner (shell không tương tác) KHÔNG source ~/.bashrc nên không có
+          # shims trên PATH. Tự thêm vào để thấy Python do pyenv quản lý (vd 3.12).
+          if [ -d "$HOME/.pyenv" ]; then
+            export PYENV_ROOT="$HOME/.pyenv"
+            export PATH="$PYENV_ROOT/shims:$PYENV_ROOT/bin:$PATH"
+          fi
           PY=""
-          for c in python3.12 python3.13 python3; do
+          for c in python3.12 python3.13 python3 python; do
             if command -v "$c" >/dev/null 2>&1 && "$c" -c 'import sys; raise SystemExit(0 if sys.version_info[:2] >= (3,10) else 1)' 2>/dev/null; then
               PY="$c"; break
             fi
           done
           if [ -z "$PY" ]; then
             echo "Không tìm thấy Python >=3.10 trên runner (python3 hiện tại: $(python3 --version 2>&1 || echo 'không có'))." >&2
-            echo "Cài: sudo add-apt-repository ppa:deadsnakes/ppa && sudo apt install -y python3.12 python3.12-venv" >&2
+            echo "Cài qua pyenv: pyenv install 3.12 && pyenv global 3.12  — hoặc deadsnakes." >&2
             exit 1
           fi
           echo "Dùng Python: $PY ($("$PY" --version))"
