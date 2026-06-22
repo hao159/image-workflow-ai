@@ -2,11 +2,12 @@ import { useState } from 'react'
 import { categoryStyle } from '../node-category-styles.js'
 import { PlusIcon, SearchIcon } from './icons.jsx'
 import { useT } from '../i18n/use-t.js'
+import { nodeTitle, nodeDescription, nodeCategory } from '../i18n/node-i18n.js'
 
 const CATEGORY_ORDER = ['Đầu vào', 'AI', 'Biến đổi', 'Đầu ra', 'Khác']
 
 export default function Palette({ nodeTypes, onAdd }) {
-  const { t } = useT()
+  const { t, lang } = useT()
   const [filter, setFilter] = useState('')
   const q = filter.trim().toLowerCase()
 
@@ -14,8 +15,8 @@ export default function Palette({ nodeTypes, onAdd }) {
   for (const meta of nodeTypes) {
     const matched =
       !q ||
-      meta.title.toLowerCase().includes(q) ||
-      (meta.description || '').toLowerCase().includes(q)
+      nodeTitle(meta).toLowerCase().includes(q) ||
+      nodeDescription(meta).toLowerCase().includes(q)
     if (matched) (byCategory[meta.category] ??= []).push(meta)
   }
   const categories = CATEGORY_ORDER.filter((c) => byCategory[c])
@@ -51,13 +52,13 @@ export default function Palette({ nodeTypes, onAdd }) {
           const { Icon, color } = categoryStyle(cat)
           return (
             <div key={cat} className="palette-group" style={{ '--cat': color }}>
-              <div className="palette-group-title">{cat}</div>
+              <div className="palette-group-title">{nodeCategory(cat)}</div>
               {byCategory[cat].map((meta) => (
                 <div
                   key={meta.type}
                   className="palette-item"
                   draggable
-                  title={meta.description}
+                  title={nodeDescription(meta)}
                   onClick={() => onAdd?.(meta.type)}
                   onDragStart={(e) => {
                     e.dataTransfer.setData('application/x-node-type', meta.type)
@@ -65,7 +66,7 @@ export default function Palette({ nodeTypes, onAdd }) {
                   }}
                 >
                   <span className="palette-item-icon"><Icon size={13} /></span>
-                  <span className="palette-item-name">{meta.title}</span>
+                  <span className="palette-item-name">{nodeTitle(meta)}</span>
                   <span className="palette-item-add"><PlusIcon size={13} /></span>
                 </div>
               ))}

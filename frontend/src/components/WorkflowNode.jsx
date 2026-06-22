@@ -7,6 +7,7 @@ import { useImageViewer } from '../ImageViewerContext.jsx'
 import NodeParamField from './NodeParamField.jsx'
 import { EyeIcon, PlayIcon, XIcon } from './icons.jsx'
 import { useT } from '../i18n/use-t.js'
+import { nodeTitle, portLabel, paramLabel, paramSupplementLabel } from '../i18n/node-i18n.js'
 
 // Card kết quả của node Lưu ảnh: thumbnail + tên file + nút xem ảnh (mở lightbox).
 function FileResultCard({ url }) {
@@ -32,7 +33,7 @@ function WorkflowNode({ id, data, selected }) {
   const { updateNodeData, deleteElements } = useReactFlow()
   const { runNode, running } = useRun()
   const { openViewer } = useImageViewer()
-  const { t } = useT()
+  const { t, lang } = useT()
   const { meta, params = {}, status, preview, error, outputs, cached } = data
   const cat = categoryStyle(meta.category)
 
@@ -74,7 +75,7 @@ function WorkflowNode({ id, data, selected }) {
       <NodeResizer minWidth={220} minHeight={120} isVisible={selected} />
       <div className="wf-node-header">
         <span className="wf-node-icon"><cat.Icon size={12} /></span>
-        <span className="wf-node-title">{meta.title}</span>
+        <span className="wf-node-title">{nodeTitle(meta)}</span>
         {cached && (
           <span className="wf-node-cache-badge" title={t('node.cacheBadgeTitle')}>
             {t('node.cacheBadgeLabel')}
@@ -114,7 +115,7 @@ function WorkflowNode({ id, data, selected }) {
                 className={`wf-handle dtype-${port.dtype}${port.multiple ? ' multi' : ''}`}
               />
               <span className="wf-port-label">
-                {port.label}
+                {portLabel(meta.type, port)}
                 {isConnected(port.name) ? (
                   <span className="wf-port-badge">{t('node.portConnected')}</span>
                 ) : port.multiple ? (
@@ -131,7 +132,7 @@ function WorkflowNode({ id, data, selected }) {
         <div className="wf-node-outputs">
           {meta.outputs.map((port) => (
             <div className="wf-port out" key={port.name}>
-              <span className="wf-port-label">{port.label}</span>
+              <span className="wf-port-label">{portLabel(meta.type, port)}</span>
               <Handle
                 type="source"
                 position={Position.Right}
@@ -148,15 +149,16 @@ function WorkflowNode({ id, data, selected }) {
         {meta.params.map((spec) => {
           // Param "bổ sung" cho một cổng: khi cổng đó đã nối, đổi nhãn để rõ
           // giá trị này được ghép thêm vào prompt nối, không thay thế.
-          const paramLabel =
+          const resolvedParamLabel =
             spec.supplement_for && isConnected(spec.supplement_for)
-              ? spec.supplement_label || spec.label
-              : spec.label
+              ? paramSupplementLabel(meta.type, spec)
+              : paramLabel(meta.type, spec)
           return (
             <label className="wf-param" key={spec.name}>
-              <span className="wf-param-label">{paramLabel}</span>
+              <span className="wf-param-label">{resolvedParamLabel}</span>
               <NodeParamField
                 spec={spec}
+                nodeType={meta.type}
                 value={params[spec.name]}
                 onChange={(v) => setParam(spec.name, v)}
               />

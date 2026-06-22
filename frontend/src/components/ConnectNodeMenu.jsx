@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { categoryStyle } from '../node-category-styles.js'
 import { SearchIcon } from './icons.jsx'
 import { useT } from '../i18n/use-t.js'
+import { nodeTitle, nodeDescription, nodeCategory } from '../i18n/node-i18n.js'
 
 const CATEGORY_ORDER = ['Đầu vào', 'AI', 'Biến đổi', 'Đầu ra', 'Khác']
 const PANEL_W = 264
@@ -10,7 +11,7 @@ const PANEL_MAX_H = 360
 // Menu nổi khi user kéo dây thả ra khoảng trống: liệt kê các node TƯƠNG THÍCH
 // (có cổng cùng dtype để nối được), chọn 1 node → tạo node + tự nối dây.
 export default function ConnectNodeMenu({ screenX, screenY, items, onPick, onClose }) {
-  const { t } = useT()
+  const { t, lang } = useT()
   const [filter, setFilter] = useState('')
   const inputRef = useRef(null)
 
@@ -27,12 +28,12 @@ export default function ConnectNodeMenu({ screenX, screenY, items, onPick, onClo
     for (const meta of items) {
       const matched =
         !q ||
-        meta.title.toLowerCase().includes(q) ||
-        (meta.description || '').toLowerCase().includes(q)
+        nodeTitle(meta).toLowerCase().includes(q) ||
+        nodeDescription(meta).toLowerCase().includes(q)
       if (matched) (groups[meta.category] ??= []).push(meta)
     }
     return groups
-  }, [items, q])
+  }, [items, q, lang])
   const categories = CATEGORY_ORDER.filter((c) => byCategory[c])
 
   // Giữ menu trong khung nhìn (không tràn mép phải/dưới màn hình).
@@ -61,17 +62,17 @@ export default function ConnectNodeMenu({ screenX, screenY, items, onPick, onClo
             const { Icon, color } = categoryStyle(cat)
             return (
               <div key={cat} className="connect-menu-group" style={{ '--cat': color }}>
-                <div className="connect-menu-group-title">{cat}</div>
+                <div className="connect-menu-group-title">{nodeCategory(cat)}</div>
                 {byCategory[cat].map((meta) => (
                   <button
                     key={meta.type}
                     type="button"
                     className="connect-menu-item"
-                    title={meta.description}
+                    title={nodeDescription(meta)}
                     onClick={() => onPick(meta.type)}
                   >
                     <span className="connect-menu-item-icon"><Icon size={13} /></span>
-                    <span className="connect-menu-item-name">{meta.title}</span>
+                    <span className="connect-menu-item-name">{nodeTitle(meta)}</span>
                   </button>
                 ))}
               </div>

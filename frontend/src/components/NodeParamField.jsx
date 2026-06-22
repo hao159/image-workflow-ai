@@ -3,6 +3,7 @@ import { uploadImage } from '../api.js'
 import { useImageViewer } from '../ImageViewerContext.jsx'
 import { EyeIcon, UploadIcon, XIcon } from './icons.jsx'
 import { useT } from '../i18n/use-t.js'
+import { paramLabel as getParamLabel } from '../i18n/node-i18n.js'
 
 // Ô upload ảnh trong node: nút chọn file → card preview với hành động
 // xem ảnh gốc (lightbox) / đổi ảnh khác / gỡ ảnh.
@@ -70,15 +71,17 @@ function ImageUploadField({ value, onChange }) {
 }
 
 // Render một tham số của node theo ptype trong metadata backend.
-export default function NodeParamField({ spec, value, onChange }) {
-  const { t } = useT()
+export default function NodeParamField({ spec, nodeType, value, onChange }) {
+  const { t, lang } = useT()
+  // Use translated label for placeholder when nodeType is provided.
+  const placeholder = nodeType ? getParamLabel(nodeType, spec) : spec.label
   switch (spec.ptype) {
     case 'textarea':
       return (
         <textarea
           className="nodrag"
           rows={3}
-          placeholder={spec.label}
+          placeholder={placeholder}
           value={value ?? ''}
           onChange={(e) => onChange(e.target.value)}
         />
@@ -124,7 +127,7 @@ export default function NodeParamField({ spec, value, onChange }) {
         <input
           className="nodrag"
           type="text"
-          placeholder={spec.label}
+          placeholder={placeholder}
           value={value ?? ''}
           onChange={(e) => onChange(e.target.value)}
         />
