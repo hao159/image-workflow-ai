@@ -1,7 +1,7 @@
+import './i18n/load-catalogs.js'
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { ReactFlowProvider } from '@xyflow/react'
-import './i18n/load-catalogs.js'
 import { I18nProvider } from './i18n/i18n-provider.jsx'
 import App from './App.jsx'
 import { ToastProvider } from './ToastContext.jsx'

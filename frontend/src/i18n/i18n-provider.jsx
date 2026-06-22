@@ -12,10 +12,8 @@ export function I18nProvider({ children }) {
     return () => window.removeEventListener(LANG_EVENT, onChange)
   }, [])
 
-  const setLang = (next) => setLangModule(next) // event listener updates state
-
   return (
-    <I18nContext.Provider value={{ t, lang, setLang }}>
+    <I18nContext.Provider value={{ t, lang, setLang: setLangModule }}>
       {children}
     </I18nContext.Provider>
   )
