@@ -120,7 +120,7 @@ async def _execute_pass(order: list[str], nodes_by_id: dict, incoming: dict,
         try:
             cls = get_node_class(node_def.type)
         except ValueError as e:
-            err_code = getattr(e, "code", "provider_unknown")
+            err_code = getattr(e, "code", None)
             await emit(RunEvent(type="node_error", node_id=node_id, message=str(e),
                                 code=err_code))
             return PassResult(False, results, out_keys, labels, node_keys, str(e),
