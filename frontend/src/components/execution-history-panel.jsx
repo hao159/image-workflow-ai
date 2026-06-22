@@ -6,16 +6,10 @@ import {
   listExecutions,
 } from '../api.js'
 import { useImageViewer } from '../ImageViewerContext.jsx'
+import { useT } from '../i18n/use-t.js'
 import { TrashIcon } from './icons.jsx'
 
 const PAGE_SIZE = 8 // số bản ghi exec mỗi trang (paging server-side)
-
-const STATUS_LABEL = {
-  success: '✓ Thành công',
-  error: '✗ Lỗi',
-  stopped: '⏹ Đã dừng',
-  running: '… Đang chạy',
-}
 
 function fmtDuration(ms) {
   if (ms == null) return '—'
@@ -25,6 +19,7 @@ function fmtDuration(ms) {
 // Lịch sử thực thi kiểu n8n cho 1 workflow: list (paging) + master-detail.
 export default function ExecutionHistoryPanel({ workflowName }) {
   const { openViewer } = useImageViewer()
+  const { t } = useT()
   const [page, setPage] = useState(1)
   const [data, setData] = useState({ items: [], total: 0 })
   const [selected, setSelected] = useState(null) // bản ghi exec đầy đủ (detail)
@@ -51,14 +46,14 @@ export default function ExecutionHistoryPanel({ workflowName }) {
 
   const removeOne = async (e, id) => {
     e.stopPropagation()
-    if (!confirm('Xóa lần chạy này?')) return
+    if (!confirm(t('history.confirmDeleteOne'))) return
     await deleteExecution(id)
     if (selected?.id === id) setSelected(null)
     reload()
   }
 
   const clearAll = async () => {
-    if (!confirm(`Xóa toàn bộ lịch sử của "${workflowName}"?`)) return
+    if (!confirm(t('history.confirmClearAll', undefined, { name: workflowName }))) return
     await clearExecutions(workflowName)
     setSelected(null)
     setPage(1)
@@ -70,17 +65,17 @@ export default function ExecutionHistoryPanel({ workflowName }) {
   return (
     <div>
       <div className="exec-history-head">
-        <span className="exec-subtitle">Lịch sử chạy · {data.total} bản ghi</span>
+        <span className="exec-subtitle">{t('history.title', undefined, { total: data.total })}</span>
         {data.total > 0 && (
           <button className="btn ghost danger" onClick={clearAll}>
-            <TrashIcon size={13} /> Xóa hết
+            <TrashIcon size={13} /> {t('history.clearAll')}
           </button>
         )}
       </div>
 
-      {loading && <div className="wf-browser-empty">Đang tải…</div>}
+      {loading && <div className="wf-browser-empty">{t('history.loading')}</div>}
       {!loading && data.items.length === 0 && (
-        <div className="wf-browser-empty">Workflow này chưa có lần chạy nào được ghi.</div>
+        <div className="wf-browser-empty">{t('history.empty')}</div>
       )}
 
       <div className="exec-list">
@@ -93,13 +88,13 @@ export default function ExecutionHistoryPanel({ workflowName }) {
             <div className="exec-row-info">
               <div className="exec-row-top">
                 <span className={`exec-badge ${ex.status}`}>
-                  {STATUS_LABEL[ex.status] || ex.status}
+                  {t('history.status.' + ex.status, ex.status)}
                 </span>
                 <span className="exec-mode">{ex.mode}</span>
               </div>
               <span className="exec-row-sub">{ex.started_at} · {fmtDuration(ex.duration_ms)}</span>
             </div>
-            <button className="btn ghost danger" title="Xóa lần chạy"
+            <button className="btn ghost danger" title={t('history.deleteRowTitle')}
               onClick={(e) => removeOne(e, ex.id)}>
               <TrashIcon size={13} />
             </button>
@@ -110,10 +105,10 @@ export default function ExecutionHistoryPanel({ workflowName }) {
       {pageCount > 1 && (
         <div className="wf-pager">
           <button className="btn ghost" disabled={page <= 1}
-            onClick={() => setPage((p) => p - 1)}>‹ Trước</button>
-          <span className="wf-pager-info">Trang {page}/{pageCount}</span>
+            onClick={() => setPage((p) => p - 1)}>{t('history.prev')}</button>
+          <span className="wf-pager-info">{t('history.page', undefined, { page, pageCount })}</span>
           <button className="btn ghost" disabled={page >= pageCount}
-            onClick={() => setPage((p) => p + 1)}>Sau ›</button>
+            onClick={() => setPage((p) => p + 1)}>{t('history.next')}</button>
         </div>
       )}
 
@@ -124,6 +119,7 @@ export default function ExecutionHistoryPanel({ workflowName }) {
 
 // Chi tiết 1 lần chạy: ảnh kết quả + trạng thái node + lỗi.
 function ExecDetail({ exec, openViewer }) {
+  const { t } = useT()
   const [broken, setBroken] = useState(() => new Set()) // sha ảnh đã bị dọn khỏi cache
   const detail = exec.detail || {}
   const refs = detail.output_refs || []
@@ -136,19 +132,19 @@ function ExecDetail({ exec, openViewer }) {
       {exec.error && <div className="exec-error-box">{exec.error}</div>}
 
       <div>
-        <div className="exec-subtitle">Ảnh kết quả</div>
+        <div className="exec-subtitle">{t('history.detail.imagesTitle')}</div>
         {refs.length === 0 ? (
-          <div className="exec-row-sub">Không có ảnh.</div>
+          <div className="exec-row-sub">{t('history.detail.noImages')}</div>
         ) : (
           <div className="exec-images">
             {refs.map((sha) => (broken.has(sha) ? (
-              <div className="exec-thumb-missing" key={sha}>Ảnh đã bị dọn khỏi cache</div>
+              <div className="exec-thumb-missing" key={sha}>{t('history.detail.imageMissing')}</div>
             ) : (
               <img
                 key={sha}
                 className="exec-thumb"
                 src={`/api/cache-image/${sha}`}
-                alt="kết quả"
+                alt={t('history.detail.imageAlt')}
                 onClick={() => openViewer({
                   src: `/api/cache-image/${sha}`, filename: `${sha.slice(0, 12)}.png`,
                 })}
@@ -161,7 +157,7 @@ function ExecDetail({ exec, openViewer }) {
 
       {Object.keys(nodes).length > 0 && (
         <div>
-          <div className="exec-subtitle">Trạng thái node</div>
+          <div className="exec-subtitle">{t('history.detail.nodesTitle')}</div>
           <div className="exec-nodes">
             {Object.entries(nodes).map(([id, st]) => (
               <div className="exec-node-row" key={id}>
