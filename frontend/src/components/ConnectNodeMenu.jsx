@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { categoryStyle } from '../node-category-styles.js'
 import { SearchIcon } from './icons.jsx'
+import { useT } from '../i18n/use-t.js'
 
 const CATEGORY_ORDER = ['Đầu vào', 'AI', 'Biến đổi', 'Đầu ra', 'Khác']
 const PANEL_W = 264
@@ -9,6 +10,7 @@ const PANEL_MAX_H = 360
 // Menu nổi khi user kéo dây thả ra khoảng trống: liệt kê các node TƯƠNG THÍCH
 // (có cổng cùng dtype để nối được), chọn 1 node → tạo node + tự nối dây.
 export default function ConnectNodeMenu({ screenX, screenY, items, onPick, onClose }) {
+  const { t } = useT()
   const [filter, setFilter] = useState('')
   const inputRef = useRef(null)
 
@@ -46,14 +48,14 @@ export default function ConnectNodeMenu({ screenX, screenY, items, onPick, onClo
           <input
             ref={inputRef}
             type="text"
-            placeholder="Tạo node nối tiếp..."
+            placeholder={t('connectMenu.searchPlaceholder')}
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
           />
         </div>
         <div className="connect-menu-scroll">
           {categories.length === 0 && (
-            <div className="connect-menu-empty">Không có node tương thích.</div>
+            <div className="connect-menu-empty">{t('connectMenu.empty')}</div>
           )}
           {categories.map((cat) => {
             const { Icon, color } = categoryStyle(cat)

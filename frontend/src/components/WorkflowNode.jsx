@@ -6,20 +6,22 @@ import { useRun } from '../RunContext.jsx'
 import { useImageViewer } from '../ImageViewerContext.jsx'
 import NodeParamField from './NodeParamField.jsx'
 import { EyeIcon, PlayIcon, XIcon } from './icons.jsx'
+import { useT } from '../i18n/use-t.js'
 
 // Card kết quả của node Lưu ảnh: thumbnail + tên file + nút xem ảnh (mở lightbox).
 function FileResultCard({ url }) {
   const filename = url.split('/').pop()
   const { openViewer } = useImageViewer()
+  const { t } = useT()
   const view = () => openViewer({ src: url, filename })
   return (
     <div className="wf-file-result nodrag">
       <img className="wf-file-thumb" src={url} alt={filename} onClick={view} />
       <div className="wf-file-info">
         <span className="wf-file-name" title={filename}>{filename}</span>
-        <span className="wf-file-hint">Đã lưu vào outputs/</span>
+        <span className="wf-file-hint">{t('node.savedToOutputs')}</span>
       </div>
-      <button type="button" className="icon-btn" title="Xem ảnh (phóng to)" onClick={view}>
+      <button type="button" className="icon-btn" title={t('node.viewImageTitle')} onClick={view}>
         <EyeIcon size={13} />
       </button>
     </div>
@@ -30,6 +32,7 @@ function WorkflowNode({ id, data, selected }) {
   const { updateNodeData, deleteElements } = useReactFlow()
   const { runNode, running } = useRun()
   const { openViewer } = useImageViewer()
+  const { t } = useT()
   const { meta, params = {}, status, preview, error, outputs, cached } = data
   const cat = categoryStyle(meta.category)
 
@@ -73,14 +76,14 @@ function WorkflowNode({ id, data, selected }) {
         <span className="wf-node-icon"><cat.Icon size={12} /></span>
         <span className="wf-node-title">{meta.title}</span>
         {cached && (
-          <span className="wf-node-cache-badge" title="Dùng kết quả cache (không chạy lại, không gọi API)">
-            ⚡ cache
+          <span className="wf-node-cache-badge" title={t('node.cacheBadgeTitle')}>
+            {t('node.cacheBadgeLabel')}
           </span>
         )}
         <span className={`status-dot ${status || 'idle'}`} title={status || ''} />
         <button
           className="wf-node-run nodrag"
-          title="Chạy tới node này (ép node này sinh mới, upstream dùng cache)"
+          title={t('node.runTitle')}
           disabled={running}
           onClick={() => runNode(id)}
         >
@@ -88,7 +91,7 @@ function WorkflowNode({ id, data, selected }) {
         </button>
         <button
           className="wf-node-close nodrag"
-          title="Xóa node"
+          title={t('node.deleteTitle')}
           onClick={() => deleteElements({ nodes: [{ id }] })}
         >
           <XIcon size={13} />
@@ -113,13 +116,13 @@ function WorkflowNode({ id, data, selected }) {
               <span className="wf-port-label">
                 {port.label}
                 {isConnected(port.name) ? (
-                  <span className="wf-port-badge">✓ đã nối</span>
+                  <span className="wf-port-badge">{t('node.portConnected')}</span>
                 ) : port.multiple ? (
-                  ' (nhiều dây)'
+                  t('node.portMultiple')
                 ) : port.required ? (
                   ''
                 ) : (
-                  ' (tùy chọn)'
+                  t('node.portOptional')
                 )}
               </span>
             </div>
@@ -167,7 +170,7 @@ function WorkflowNode({ id, data, selected }) {
         <div className="wf-node-preview">
           <img
             src={preview}
-            alt="kết quả"
+            alt={t('node.previewAlt')}
             onClick={() => openViewer({ src: fullResUrl ?? preview, filename: `${meta.title}.png` })}
           />
         </div>

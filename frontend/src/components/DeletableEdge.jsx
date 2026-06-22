@@ -1,6 +1,7 @@
 import { memo, useState } from 'react'
 import { BaseEdge, EdgeLabelRenderer, getBezierPath, useReactFlow } from '@xyflow/react'
 import { XIcon } from './icons.jsx'
+import { useT } from '../i18n/use-t.js'
 
 // Dây nối có nút xóa: rê chuột vào dây (hoặc chọn dây) → hiện nút × ở giữa
 // để xóa nhanh, thay vì phải chọn rồi bấm phím Delete.
@@ -17,6 +18,7 @@ function DeletableEdge({
   selected,
 }) {
   const { deleteElements } = useReactFlow()
+  const { t } = useT()
   const [hovered, setHovered] = useState(false)
   const [edgePath, labelX, labelY] = getBezierPath({
     sourceX,
@@ -49,7 +51,7 @@ function DeletableEdge({
           type="button"
           className={`wf-edge-delete nodrag nopan${show ? ' show' : ''}`}
           style={{ transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)` }}
-          title="Xóa dây nối"
+          title={t('edge.delete')}
           onMouseEnter={enter}
           onMouseLeave={leave}
           onClick={(e) => {
