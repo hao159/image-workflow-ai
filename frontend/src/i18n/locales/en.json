@@ -27,5 +27,9 @@
   "status.workflowDeleted": "Deleted \"{name}\"",
   "status.workflowLoaded": "Loaded \"{name}\"",
   "app.confirmOverwrite": "Workflow \"{name}\" already exists. Overwrite?",
-  "app.confirmDeleteWorkflow": "Delete workflow \"{name}\"?"
+  "app.confirmDeleteWorkflow": "Delete workflow \"{name}\"?",
+  "palette.searchPlaceholder": "Search nodes…",
+  "palette.hint": "Click to append to flow, or drag to any position",
+  "palette.emptyBackend": "Waiting for backend…",
+  "palette.emptySearch": "No nodes found."
 }

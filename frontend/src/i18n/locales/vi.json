@@ -27,5 +27,9 @@
   "status.workflowDeleted": "Đã xóa \"{name}\"",
   "status.workflowLoaded": "Đã tải \"{name}\"",
   "app.confirmOverwrite": "Workflow \"{name}\" đã tồn tại. Ghi đè?",
-  "app.confirmDeleteWorkflow": "Xóa workflow \"{name}\"?"
+  "app.confirmDeleteWorkflow": "Xóa workflow \"{name}\"?",
+  "palette.searchPlaceholder": "Tìm node...",
+  "palette.hint": "Bấm để nối tiếp vào flow, hoặc kéo thả vào vị trí tùy ý",
+  "palette.emptyBackend": "Đang chờ backend...",
+  "palette.emptySearch": "Không tìm thấy node nào."
 }

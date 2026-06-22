@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { categoryStyle } from '../node-category-styles.js'
 import { PlusIcon, SearchIcon } from './icons.jsx'
+import { useT } from '../i18n/use-t.js'
 
 const CATEGORY_ORDER = ['Đầu vào', 'AI', 'Biến đổi', 'Đầu ra', 'Khác']
 
 export default function Palette({ nodeTypes, onAdd }) {
+  const { t } = useT()
   const [filter, setFilter] = useState('')
   const q = filter.trim().toLowerCase()
 
@@ -32,17 +34,17 @@ export default function Palette({ nodeTypes, onAdd }) {
         <SearchIcon size={13} className="palette-search-icon" />
         <input
           type="text"
-          placeholder="Tìm node..."
+          placeholder={t('palette.searchPlaceholder')}
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
         />
       </div>
-      <p className="palette-hint">Bấm để nối tiếp vào flow, hoặc kéo thả vào vị trí tùy ý</p>
+      <p className="palette-hint">{t('palette.hint')}</p>
 
       <div className="palette-scroll">
         {categories.length === 0 && (
           <div className="palette-empty">
-            {nodeTypes.length === 0 ? 'Đang chờ backend...' : 'Không tìm thấy node nào.'}
+            {nodeTypes.length === 0 ? t('palette.emptyBackend') : t('palette.emptySearch')}
           </div>
         )}
         {categories.map((cat) => {
