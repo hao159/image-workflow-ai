@@ -158,5 +158,71 @@
   "node.portConnected": "✓ đã nối",
   "node.portMultiple": " (nhiều dây)",
   "node.portOptional": " (tùy chọn)",
-  "node.savedToOutputs": "Đã lưu vào outputs/"
+  "node.savedToOutputs": "Đã lưu vào outputs/",
+
+  "error.generic": "Đã xảy ra lỗi.",
+  "error.provider_error": "Provider trả về lỗi.",
+
+  "error.generate_no_prompt": "Node 'Tạo ảnh' cần prompt (nối vào cổng hoặc gõ trực tiếp).",
+  "error.edit_no_image": "Node 'Sửa ảnh' cần ảnh đầu vào.",
+  "error.edit_no_prompt": "Node 'Sửa ảnh' cần prompt mô tả thay đổi.",
+  "error.enhance_no_prompt": "Node 'Enhance prompt' cần prompt gốc (nối vào cổng hoặc gõ trực tiếp).",
+  "error.extract_no_image": "Node 'Trích vùng' cần ảnh đầu vào.",
+  "error.extract_no_target": "Node 'Trích vùng' cần mô tả đối tượng cần trích.",
+  "error.load_image_missing": "Node 'Tải ảnh lên' chưa có ảnh nào được upload.",
+  "error.save_image_no_input": "Node 'Lưu ảnh' cần ảnh đầu vào.",
+
+  "error.provider_no_text_support": "Provider này không hỗ trợ sinh text. Chọn cấu hình Gemini / OpenAI / Codex cho node này.",
+  "error.provider_no_vision_support": "Provider này không hỗ trợ trích vùng (detect_region). Dùng cấu hình Gemini cho node Trích vùng.",
+  "error.provider_no_image": "Provider không trả về ảnh nào.",
+  "error.provider_no_text": "Provider không trả về text nào.",
+  "error.provider_unknown": "Provider không hỗ trợ.",
+  "error.region_not_found": "Không tìm thấy đối tượng trong ảnh. Thử mô tả khác hoặc ảnh rõ hơn.",
+
+  "error.model_config_not_found": "Cấu hình model không tồn tại. Mở ⚙ Cài đặt model để thêm.",
+  "error.gemini_no_api_key": "Chưa có API key cho Gemini. Thêm cấu hình trong ⚙ Cài đặt model hoặc đặt GEMINI_API_KEY trong file .env.",
+  "error.openai_no_api_key": "Chưa có API key cho OpenAI. Thêm cấu hình trong ⚙ Cài đặt model hoặc đặt OPENAI_API_KEY trong file .env.",
+
+  "error.oauth_not_logged_in": "Chưa đăng nhập OpenAI (Codex). Mở ⚙ Cài đặt model để đăng nhập.",
+  "error.oauth_expired": "Phiên OpenAI hết hạn và không refresh được. Đăng nhập lại.",
+  "error.browser_unavailable": "Không tự mở được trình duyệt. Mở link này để đăng nhập rồi thử lại.",
+
+  "error.workflow_not_found": "Không tìm thấy workflow.",
+  "error.workflow_exists": "Workflow đã tồn tại.",
+  "error.workflow_edge_invalid": "Cạnh nối tới node không tồn tại.",
+  "error.workflow_cycle": "Workflow có vòng lặp (cycle) — không thể thực thi.",
+  "error.workflow_invalid": "Workflow không hợp lệ.",
+
+  "error.config_name_empty": "Tên cấu hình không được để trống.",
+  "error.config_name_exists": "Đã có cấu hình với tên đó.",
+  "error.config_not_found": "Không tìm thấy cấu hình.",
+  "error.config_provider_invalid": "Provider không hợp lệ.",
+
+  "error.upload_format_unsupported": "Định dạng ảnh không hỗ trợ.",
+  "error.upload_too_large": "Ảnh quá lớn.",
+  "error.upload_invalid": "Không đọc được ảnh.",
+
+  "error.file_not_found": "Không tìm thấy file.",
+  "error.execution_not_found": "Không tìm thấy bản ghi thực thi.",
+  "error.internal_error": "Lỗi nội bộ server.",
+
+  "error.node_list_failed": "Không tải được danh sách node từ backend.",
+  "error.upload_failed": "Upload ảnh thất bại.",
+  "error.workflow_load_failed": "Không tải được workflow.",
+  "error.workflow_save_failed": "Lưu workflow thất bại.",
+  "error.workflow_delete_failed": "Xóa workflow thất bại.",
+  "error.model_configs_failed": "Không tải được danh sách cấu hình model.",
+  "error.save_model_config_failed": "Lưu cấu hình thất bại.",
+  "error.delete_model_config_failed": "Xóa cấu hình thất bại.",
+  "error.model_list_failed": "Không tải được danh sách model.",
+  "error.execution_list_failed": "Không tải được lịch sử thực thi.",
+  "error.execution_get_failed": "Không tải được chi tiết lần chạy.",
+  "error.execution_delete_failed": "Xóa lần chạy thất bại.",
+  "error.execution_clear_failed": "Xóa lịch sử thất bại.",
+  "error.cache_clear_failed": "Xóa cache thất bại.",
+  "error.oauth_status_failed": "Không lấy được trạng thái đăng nhập OpenAI.",
+  "error.oauth_login_failed": "Đăng nhập OpenAI thất bại.",
+  "error.uploads_list_failed": "Không tải được danh sách ảnh đầu vào.",
+  "error.outputs_list_failed": "Không tải được danh sách ảnh đầu ra.",
+  "error.image_delete_failed": "Xóa ảnh thất bại."
 }

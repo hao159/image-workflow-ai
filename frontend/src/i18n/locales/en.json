@@ -251,5 +251,71 @@
   "nodes.adjust.outputs.image": "Image",
   "nodes.adjust.params.brightness.label": "Brightness",
   "nodes.adjust.params.contrast.label": "Contrast",
-  "nodes.adjust.params.saturation.label": "Saturation"
+  "nodes.adjust.params.saturation.label": "Saturation",
+
+  "error.generic": "Something went wrong.",
+  "error.provider_error": "The provider returned an error.",
+
+  "error.generate_no_prompt": "The Generate image node needs a prompt (connect a wire or type one).",
+  "error.edit_no_image": "The Edit image node needs an input image.",
+  "error.edit_no_prompt": "The Edit image node needs a prompt describing the change.",
+  "error.enhance_no_prompt": "The Enhance prompt node needs a base prompt (connect a wire or type one).",
+  "error.extract_no_image": "The Extract region node needs an input image.",
+  "error.extract_no_target": "The Extract region node needs a description of the object to extract.",
+  "error.load_image_missing": "The Upload image node has no image uploaded yet.",
+  "error.save_image_no_input": "The Save image node needs an input image.",
+
+  "error.provider_no_text_support": "This provider does not support text generation. Choose a Gemini, OpenAI, or Codex config for this node.",
+  "error.provider_no_vision_support": "This provider does not support region detection. Use a Gemini config for the Extract region node.",
+  "error.provider_no_image": "The provider did not return an image.",
+  "error.provider_no_text": "The provider did not return any text.",
+  "error.provider_unknown": "Unsupported provider.",
+  "error.region_not_found": "Could not find the object in the image. Try a different description or a clearer image.",
+
+  "error.model_config_not_found": "Model configuration not found. Open ⚙ Model settings to add one.",
+  "error.gemini_no_api_key": "No API key set for Gemini. Add a config in ⚙ Model settings or set GEMINI_API_KEY in .env.",
+  "error.openai_no_api_key": "No API key set for OpenAI. Add a config in ⚙ Model settings or set OPENAI_API_KEY in .env.",
+
+  "error.oauth_not_logged_in": "Not logged in to OpenAI (Codex). Open ⚙ Model settings to log in.",
+  "error.oauth_expired": "OpenAI session expired and could not be refreshed. Please log in again.",
+  "error.browser_unavailable": "Could not open the browser automatically. Open the link manually to log in.",
+
+  "error.workflow_not_found": "Workflow not found.",
+  "error.workflow_exists": "A workflow with that name already exists.",
+  "error.workflow_edge_invalid": "An edge connects to a node that does not exist.",
+  "error.workflow_cycle": "The workflow has a cycle and cannot be executed.",
+  "error.workflow_invalid": "Invalid workflow format.",
+
+  "error.config_name_empty": "Configuration name cannot be empty.",
+  "error.config_name_exists": "A configuration with that name already exists.",
+  "error.config_not_found": "Configuration not found.",
+  "error.config_provider_invalid": "Invalid provider.",
+
+  "error.upload_format_unsupported": "Unsupported image format.",
+  "error.upload_too_large": "Image is too large.",
+  "error.upload_invalid": "Could not decode image.",
+
+  "error.file_not_found": "File not found.",
+  "error.execution_not_found": "Execution record not found.",
+  "error.internal_error": "Internal server error.",
+
+  "error.node_list_failed": "Could not load the node list from the backend.",
+  "error.upload_failed": "Image upload failed.",
+  "error.workflow_load_failed": "Could not load workflow.",
+  "error.workflow_save_failed": "Save failed.",
+  "error.workflow_delete_failed": "Could not delete workflow.",
+  "error.model_configs_failed": "Could not load model configuration list.",
+  "error.save_model_config_failed": "Save failed.",
+  "error.delete_model_config_failed": "Could not delete configuration.",
+  "error.model_list_failed": "Could not load model list.",
+  "error.execution_list_failed": "Could not load run history.",
+  "error.execution_get_failed": "Could not load run details.",
+  "error.execution_delete_failed": "Could not delete run.",
+  "error.execution_clear_failed": "Could not clear history.",
+  "error.cache_clear_failed": "Could not clear cache.",
+  "error.oauth_status_failed": "Could not get OpenAI login status.",
+  "error.oauth_login_failed": "OpenAI login failed.",
+  "error.uploads_list_failed": "Could not load input image list.",
+  "error.outputs_list_failed": "Could not load output image list.",
+  "error.image_delete_failed": "Could not delete image."
 }

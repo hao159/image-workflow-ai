@@ -21,7 +21,7 @@ import { RunContext } from './RunContext.jsx'
 import { ImageViewerProvider } from './ImageViewerContext.jsx'
 import { useToast } from './ToastContext.jsx'
 import { useT } from './i18n/use-t.js'
-import { LANG_OPTIONS } from './i18n/index.js'
+import { LANG_OPTIONS, translateError } from './i18n/index.js'
 import { layoutNodes } from './auto-layout.js'
 import {
   AlertIcon,
@@ -352,7 +352,7 @@ export default function App() {
             })
             break
           case 'node_error':
-            updateNodeData(ev.node_id, { status: 'error', error: ev.message })
+            updateNodeData(ev.node_id, { status: 'error', error: translateError(ev.code, ev.message, ev.params) })
             break
           case 'run_finished':
             runEnded = true
@@ -362,14 +362,16 @@ export default function App() {
             setRunningNodeId(null)
             setEdgesAnimated(false)
             break
-          case 'run_error':
+          case 'run_error': {
             runEnded = true
-            setStatusMsg('✗ ' + t('status.error', undefined, { message: ev.message })) // giữ lỗi trong chip (bền) + toast
-            toast.error(t('status.error', undefined, { message: ev.message }))
+            const runErrMsg = translateError(ev.code, ev.message, ev.params)
+            setStatusMsg('✗ ' + t('status.error', undefined, { message: runErrMsg })) // giữ lỗi trong chip (bền) + toast
+            toast.error(t('status.error', undefined, { message: runErrMsg }))
             setRunning(false)
             setRunningNodeId(null)
             setEdgesAnimated(false)
             break
+          }
         }
       }
       // WS đóng khi run chưa kết thúc = backend rớt/restart (vd uvicorn --reload

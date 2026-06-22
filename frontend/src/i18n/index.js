@@ -58,3 +58,11 @@ export function t(key, fallback, params) {
 export function registerCatalogs(enCat, viCat) {
   catalogs = { en: enCat || {}, vi: viCat || {} }
 }
+
+// Translate a backend error by code, falling back to the raw backend message.
+// If no code is provided, returns fallbackMessage (or generic error string).
+// Supports {var} interpolation via params.
+export function translateError(code, fallbackMessage, params) {
+  if (!code) return fallbackMessage || t('error.generic')
+  return t(`error.${code}`, fallbackMessage, params)
+}
