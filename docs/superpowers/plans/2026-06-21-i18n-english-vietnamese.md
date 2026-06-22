@@ -34,6 +34,7 @@
   - `getLang(): 'en' | 'vi'`
   - `setLang(lang): void` — writes `iw-ui-settings.lang`, updates module state, dispatches `iw-lang-change` CustomEvent.
   - `t(key: string, fallback?: string, params?: object): string` — resolves `catalog[lang][key]`; if missing, uses `fallback` (if a string) else `key`; interpolates `{var}` from `params`.
+  - `registerCatalogs(en, vi): void` — installs the active catalog objects. Called once by the app (Task 2 `load-catalogs.js`) with the bundler-imported JSON, and by tests with inline objects. Keeps `index.js` free of top-level JSON imports so the `.mjs` tests run under bare `node` (Node ESM rejects attribute-less JSON imports).
   - `LANG_OPTIONS: {value, label}[]`
   - Event name constant `LANG_EVENT = 'iw-lang-change'`.
 
@@ -54,9 +55,9 @@
 ```js
 // Run with: node frontend/src/i18n/i18n.test.mjs
 import assert from 'node:assert/strict'
-import { t, setLang, getLang, __setCatalogsForTest } from './index.js'
+import { t, setLang, getLang, registerCatalogs } from './index.js'
 
-__setCatalogsForTest(
+registerCatalogs(
   { 'a.b': 'Hello', greet: 'Hi {name}' },   // en
   { 'a.b': 'Xin chào', greet: 'Chào {name}' }, // vi
 )
@@ -93,9 +94,8 @@ Expected: FAIL — `Cannot find module './index.js'` / export missing.
 ```js
 // Lightweight i18n: module-level current language so t() works everywhere
 // (React components AND plain modules like api.js). I18nProvider handles re-render.
-import en from './locales/en.json'
-import vi from './locales/vi.json'
-
+// Catalogs are installed via registerCatalogs() (see load-catalogs.js) rather than
+// imported here, so the .mjs tests run under bare node without JSON import attributes.
 const STORAGE_KEY = 'iw-ui-settings'
 export const LANG_EVENT = 'iw-lang-change'
 const SUPPORTED = ['en', 'vi']
@@ -106,7 +106,7 @@ export const LANG_OPTIONS = [
   { value: 'vi', label: 'Tiếng Việt' },
 ]
 
-let catalogs = { en, vi }
+let catalogs = { en: {}, vi: {} }
 let current = null
 
 function readSettings() {
@@ -147,9 +147,10 @@ export function t(key, fallback, params) {
   return raw.replace(/\{(\w+)\}/g, (m, k) => (k in params ? String(params[k]) : m))
 }
 
-// Test-only hook to inject catalogs without bundler JSON imports.
-export function __setCatalogsForTest(enCat, viCat) {
-  catalogs = { en: enCat, vi: viCat }
+// Install catalogs. App calls this once via load-catalogs.js with the bundled
+// JSON; tests call it with inline objects.
+export function registerCatalogs(enCat, viCat) {
+  catalogs = { en: enCat || {}, vi: viCat || {} }
 }
 ```
 
@@ -174,11 +175,13 @@ git commit -m "feat(i18n): add core t() resolver with language persistence"
 **Files:**
 - Create: `frontend/src/i18n/i18n-provider.jsx`
 - Create: `frontend/src/i18n/use-t.js`
+- Create: `frontend/src/i18n/load-catalogs.js`
 - Modify: `frontend/src/main.jsx:15-23`
 
 **Interfaces:**
-- Consumes: `getLang`, `setLang`, `t`, `LANG_EVENT` from Task 1.
+- Consumes: `getLang`, `setLang`, `t`, `LANG_EVENT`, `registerCatalogs` from Task 1.
 - Produces:
+  - `load-catalogs.js` — side-effect module: imports `en.json`/`vi.json` (Vite) and calls `registerCatalogs(en, vi)` at load. Imported first in `main.jsx`.
   - `<I18nProvider>` — context provider that re-renders subtree on `iw-lang-change`.
   - `useT(): { t, lang, setLang }` — `t` is a stable reference to the module `t`; `lang` triggers re-render; `setLang` is the module setter.
 
@@ -226,10 +229,24 @@ export function useT() {
 }
 ```
 
+- [ ] **Step 1b: Create the catalog loader**
+
+`frontend/src/i18n/load-catalogs.js`:
+```js
+// Installs the JSON catalogs into the i18n core. Imported for its side effect
+// from main.jsx before the app renders. Vite resolves the plain JSON imports.
+import en from './locales/en.json'
+import vi from './locales/vi.json'
+import { registerCatalogs } from './index.js'
+
+registerCatalogs(en, vi)
+```
+
 - [ ] **Step 2: Wire provider in main.jsx**
 
-Modify `frontend/src/main.jsx` — add import and wrap `<App />` (outermost so all children re-render):
+Modify `frontend/src/main.jsx` — import the catalog loader (side effect, FIRST so catalogs exist before any render) and the provider, then wrap `<App />` (outermost so all children re-render):
 ```jsx
+import './i18n/load-catalogs.js'
 import { I18nProvider } from './i18n/i18n-provider.jsx'
 // ...
 ReactDOM.createRoot(document.getElementById('root')).render(
@@ -527,10 +544,10 @@ Add to `en.json` (verbatim — this is the full node-schema English; `vi.json` g
 ```js
 // Run with: node frontend/src/i18n/node-i18n.test.mjs
 import assert from 'node:assert/strict'
-import { __setCatalogsForTest, setLang } from './index.js'
+import { registerCatalogs, setLang } from './index.js'
 import { nodeTitle, nodeCategory, paramLabel } from './node-i18n.js'
 
-__setCatalogsForTest(
+registerCatalogs(
   { 'nodes.edit_image.title': 'Edit image (AI)', 'category.ai': 'AI',
     'nodes.edit_image.params.prompt.label': 'Edit prompt' },
   {},
