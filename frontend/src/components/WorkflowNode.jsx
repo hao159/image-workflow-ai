@@ -115,7 +115,7 @@ function WorkflowNode({ id, data, selected }) {
                 className={`wf-handle dtype-${port.dtype}${port.multiple ? ' multi' : ''}`}
               />
               <span className="wf-port-label">
-                {portLabel(meta.type, port)}
+                {portLabel(meta.type, port, 'inputs')}
                 {isConnected(port.name) ? (
                   <span className="wf-port-badge">{t('node.portConnected')}</span>
                 ) : port.multiple ? (
@@ -132,7 +132,7 @@ function WorkflowNode({ id, data, selected }) {
         <div className="wf-node-outputs">
           {meta.outputs.map((port) => (
             <div className="wf-port out" key={port.name}>
-              <span className="wf-port-label">{portLabel(meta.type, port)}</span>
+              <span className="wf-port-label">{portLabel(meta.type, port, 'outputs')}</span>
               <Handle
                 type="source"
                 position={Position.Right}

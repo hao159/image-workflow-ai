@@ -25,9 +25,9 @@ export function nodeCategory(catVi) {
   return slug ? t(`category.${slug}`, catVi) : catVi
 }
 
-/** Translate a port label by port.name; falls back to backend port.label. */
-export function portLabel(type, port) {
-  return t(`nodes.${type}.ports.${port.name}`, port.label)
+/** Translate a port label by port.name and direction ('inputs'|'outputs'); falls back to backend port.label. */
+export function portLabel(type, port, direction) {
+  return t(`nodes.${type}.${direction}.${port.name}`, port.label)
 }
 
 /** Translate a param label by param.name; falls back to backend param.label. */
