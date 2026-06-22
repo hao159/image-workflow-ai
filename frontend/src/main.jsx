@@ -1,6 +1,8 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { ReactFlowProvider } from '@xyflow/react'
+import './i18n/load-catalogs.js'
+import { I18nProvider } from './i18n/i18n-provider.jsx'
 import App from './App.jsx'
 import { ToastProvider } from './ToastContext.jsx'
 import { applyTheme, initThemeWatcher } from './ui-settings.js'
@@ -14,10 +16,12 @@ initThemeWatcher()
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <ReactFlowProvider>
-      <ToastProvider>
-        <App />
-      </ToastProvider>
-    </ReactFlowProvider>
+    <I18nProvider>
+      <ReactFlowProvider>
+        <ToastProvider>
+          <App />
+        </ToastProvider>
+      </ReactFlowProvider>
+    </I18nProvider>
   </React.StrictMode>,
 )
