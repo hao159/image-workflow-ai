@@ -97,5 +97,18 @@
   "workflowBrowser.prev": "‹ Trước",
   "workflowBrowser.next": "Sau ›",
   "workflowBrowser.page": "Trang {p}/{n}",
-  "workflowBrowser.emptyHistory": "Chọn 1 workflow để xem lịch sử."
+  "workflowBrowser.emptyHistory": "Chọn 1 workflow để xem lịch sử.",
+  "library.title": "Thư viện ảnh",
+  "library.tabUploads": "Đầu vào",
+  "library.tabOutputs": "Đầu ra",
+  "library.uploadNote": "Xóa ảnh đầu vào có thể làm hỏng workflow đã lưu đang dùng ảnh đó.",
+  "library.loading": "Đang tải…",
+  "library.empty": "Chưa có ảnh nào.",
+  "library.viewTitle": "Xem ảnh full-res",
+  "library.deleteTitle": "Xóa ảnh",
+  "library.prevPage": "‹ Trước",
+  "library.page": "Trang {p}/{n}",
+  "library.nextPage": "Sau ›",
+  "library.confirmDelete": "Xóa ảnh \"{name}\"?",
+  "library.toastDeleted": "Đã xóa ảnh."
 }

@@ -4,18 +4,20 @@ import { listUploads, listOutputs, deleteUpload, deleteOutput } from '../api.js'
 import { useImageViewer } from '../ImageViewerContext.jsx'
 import { useToast } from '../ToastContext.jsx'
 import ConfirmDialog from './confirm-dialog.jsx'
+import { useT } from '../i18n/use-t.js'
 
 const PAGE_SIZE = 12 // số thumbnail mỗi trang (paging client-side)
 
-// Cấu hình 2 tab: nhãn + hàm list/delete tương ứng.
+// Cấu hình 2 tab: key + hàm list/delete tương ứng.
 const TABS = {
-  uploads: { label: 'Đầu vào', list: listUploads, del: deleteUpload },
-  outputs: { label: 'Đầu ra', list: listOutputs, del: deleteOutput },
+  uploads: { list: listUploads, del: deleteUpload },
+  outputs: { list: listOutputs, del: deleteOutput },
 }
 
 // Modal thư viện ảnh: 2 tab (uploads/outputs), lưới thumbnail có paging,
 // click ảnh → lightbox dùng chung, xóa qua popup xác nhận (ConfirmDialog).
 export default function ImageLibraryModal({ onClose }) {
+  const { t } = useT()
   const [tab, setTab] = useState('uploads')
   const [items, setItems] = useState([])
   const [page, setPage] = useState(0)
@@ -58,11 +60,16 @@ export default function ImageLibraryModal({ onClose }) {
     setPending(null)
     try {
       await TABS[tab].del(name)
-      toast.success('Đã xóa ảnh.')
+      toast.success(t('library.toastDeleted'))
       refresh(tab)
     } catch (e) {
       toast.error(e.message)
     }
+  }
+
+  const TAB_LABELS = {
+    uploads: t('library.tabUploads'),
+    outputs: t('library.tabOutputs'),
   }
 
   return (
@@ -70,40 +77,40 @@ export default function ImageLibraryModal({ onClose }) {
       <div className="modal-backdrop" onClick={onClose}>
         <div className="modal img-library" onClick={(e) => e.stopPropagation()}>
           <div className="modal-header">
-            <span className="modal-title"><ImageIcon size={16} /> Thư viện ảnh</span>
+            <span className="modal-title"><ImageIcon size={16} /> {t('library.title')}</span>
             <button className="btn ghost" onClick={onClose}><XIcon size={15} /></button>
           </div>
 
           <div className="wf-browser-tabs" role="tablist">
-            {Object.entries(TABS).map(([key, t]) => (
+            {Object.keys(TABS).map((key) => (
               <button
                 key={key}
                 className={`wf-tab${tab === key ? ' active' : ''}`}
                 onClick={() => setTab(key)}
               >
-                {t.label}
+                {TAB_LABELS[key]}
               </button>
             ))}
           </div>
 
           {tab === 'uploads' && (
             <div className="img-library-note">
-              Xóa ảnh đầu vào có thể làm hỏng workflow đã lưu đang dùng ảnh đó.
+              {t('library.uploadNote')}
             </div>
           )}
 
           <div className="img-library-body">
             {loading ? (
-              <div className="wf-browser-empty">Đang tải…</div>
+              <div className="wf-browser-empty">{t('library.loading')}</div>
             ) : items.length === 0 ? (
-              <div className="wf-browser-empty">Chưa có ảnh nào.</div>
+              <div className="wf-browser-empty">{t('library.empty')}</div>
             ) : (
               <div className="img-grid">
                 {rows.map((it) => (
                   <div className="img-card" key={it.name}>
                     <button
                       className="img-card-thumb"
-                      title="Xem ảnh full-res"
+                      title={t('library.viewTitle')}
                       onClick={() => openViewer({ src: it.url, filename: it.name })}
                     >
                       <img src={it.url} alt={it.name} loading="lazy" />
@@ -112,7 +119,7 @@ export default function ImageLibraryModal({ onClose }) {
                       <span className="img-card-name" title={it.name}>{it.name}</span>
                       <button
                         className="btn ghost danger"
-                        title="Xóa ảnh"
+                        title={t('library.deleteTitle')}
                         onClick={() => setPending({ name: it.name })}
                       >
                         <TrashIcon size={13} />
@@ -126,10 +133,10 @@ export default function ImageLibraryModal({ onClose }) {
             {pageCount > 1 && (
               <div className="wf-pager">
                 <button className="btn ghost" disabled={safePage === 0}
-                  onClick={() => setPage(safePage - 1)}>‹ Trước</button>
-                <span className="wf-pager-info">Trang {safePage + 1}/{pageCount}</span>
+                  onClick={() => setPage(safePage - 1)}>{t('library.prevPage')}</button>
+                <span className="wf-pager-info">{t('library.page', null, { p: safePage + 1, n: pageCount })}</span>
                 <button className="btn ghost" disabled={safePage >= pageCount - 1}
-                  onClick={() => setPage(safePage + 1)}>Sau ›</button>
+                  onClick={() => setPage(safePage + 1)}>{t('library.nextPage')}</button>
               </div>
             )}
           </div>
@@ -138,7 +145,7 @@ export default function ImageLibraryModal({ onClose }) {
 
       {pending && (
         <ConfirmDialog
-          message={`Xóa ảnh "${pending.name}"?`}
+          message={t('library.confirmDelete', null, { name: pending.name })}
           onConfirm={doDelete}
           onCancel={() => setPending(null)}
         />

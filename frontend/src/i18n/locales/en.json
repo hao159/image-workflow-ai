@@ -97,5 +97,18 @@
   "workflowBrowser.prev": "‹ Prev",
   "workflowBrowser.next": "Next ›",
   "workflowBrowser.page": "Page {p}/{n}",
-  "workflowBrowser.emptyHistory": "Select a workflow to view its history."
+  "workflowBrowser.emptyHistory": "Select a workflow to view its history.",
+  "library.title": "Image library",
+  "library.tabUploads": "Inputs",
+  "library.tabOutputs": "Outputs",
+  "library.uploadNote": "Deleting an input image may break saved workflows that use it.",
+  "library.loading": "Loading…",
+  "library.empty": "No images yet.",
+  "library.viewTitle": "View full-res image",
+  "library.deleteTitle": "Delete image",
+  "library.prevPage": "‹ Prev",
+  "library.page": "Page {p}/{n}",
+  "library.nextPage": "Next ›",
+  "library.confirmDelete": "Delete image \"{name}\"?",
+  "library.toastDeleted": "Image deleted."
 }
