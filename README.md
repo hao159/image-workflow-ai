@@ -1,38 +1,39 @@
+> **English** · [Tiếng Việt](README.vi.md)
+
 # Image Workflow
 
-Công cụ AI tạo & sửa ảnh theo dạng **workflow kéo–thả node** (giống n8n): mỗi node là một
-bước (prompt → tạo ảnh → sửa ảnh → biến đổi → lưu), nối dây giữa các node để dựng pipeline.
+An AI tool for generating & editing images via a **drag-and-drop node workflow** (similar to n8n): each node is a step (prompt → generate image → edit image → transform → save), connected by wires to build a pipeline.
 
 ![Workflow canvas](images/demo-work-flow-multi-node.png)
 
-Chạy workflow → mỗi node hiện kết quả ngay trên canvas:
+Run the workflow → each node shows its result directly on the canvas:
 
-![Workflow sau khi chạy](images/demo-work-flow-multi-node-exec.png)
+![Workflow after running](images/demo-work-flow-multi-node-exec.png)
 
-Ảnh kết quả cuối (ghép nhiều ảnh + prompt):
+Final output image (combining multiple images + prompt):
 
-![Ảnh kết quả](images/result-image.png)
+![Result image](images/result-image.png)
 
-## Tính năng chính
+## Key Features
 
-- **Canvas kéo–thả:** dựng pipeline bằng cách nối các node, xem preview ảnh ngay trên node.
-- **Đa provider AI:** `gemini` (Gemini 2.5 Flash Image), `openai` (gpt-image-1), `codex`
-  (đăng nhập ChatGPT/OAuth, dùng quota gói ChatGPT). Mỗi provider chỉ cần khai báo API key
-  trong **⚙ Cài đặt** (hoặc qua `.env`).
-- **Cache theo node:** node không đổi sẽ dùng lại kết quả cũ (badge **⚡ cache**), không gọi
-  lại AI → tiết kiệm token. Đổi param/đầu vào → chỉ node đó + downstream chạy lại.
-- **Ghép nhiều ảnh:** ô **Mô tả ảnh** đặt tên từng ảnh và đi theo ảnh xuống node Sửa ảnh
-  ("mặc áo ở Ảnh 1 lên người ở Ảnh 2").
-- **Lưu workflow + lịch sử chạy** kiểu n8n (trạng thái, thời lượng, ảnh kết quả từng lần chạy).
-- **Test offline:** provider `fake` vẽ ảnh placeholder, không gọi mạng, không tốn token.
-- **Giao diện sáng/tối** (Hệ thống / Sáng / Tối), phong cách trung tính, phẳng.
+- **Drag-and-drop canvas:** build pipelines by connecting nodes, with live image previews on each node.
+- **Multiple AI providers:** `gemini` (Gemini 2.5 Flash Image), `openai` (gpt-image-1), `codex`
+  (ChatGPT/OAuth login, uses your ChatGPT plan quota). Each provider only needs an API key declared
+  in **⚙ Settings** (or via `.env`).
+- **Per-node caching:** unchanged nodes reuse their previous result (badge **⚡ cache**), skipping
+  the AI call and saving tokens. Changing a param/input only reruns that node and its downstream nodes.
+- **Multi-image composition:** the **Image description** field names each image and follows it into
+  the Edit Image node ("wear the outfit from Image 1 on the person in Image 2").
+- **Save workflows + run history** n8n-style (status, duration, result images for each run).
+- **Offline testing:** the `fake` provider draws placeholder images without any network calls or token cost.
+- **Light/dark theme** (System / Light / Dark), neutral flat style.
 
-## Cài đặt & chạy nhanh
+## Setup & Quick Start
 
-Script bootstrap tự lo Python ≥3.10, Node ≥18, deps, build frontend rồi chạy app + mở trình duyệt.
+The bootstrap script handles Python ≥3.10, Node ≥18, dependencies, frontend build, then launches the app and opens a browser.
 
 ```powershell
-# Windows: double-click run.bat — hoặc:
+# Windows: double-click run.bat — or:
 powershell -ExecutionPolicy Bypass -File run.ps1
 ```
 
@@ -41,9 +42,9 @@ powershell -ExecutionPolicy Bypass -File run.ps1
 bash run.sh
 ```
 
-Thêm `-Dev` / `--dev` để chạy dev mode, `-Rebuild` / `--rebuild` để build lại frontend.
+Append `-Dev` / `--dev` to run in dev mode, or `-Rebuild` / `--rebuild` to force a frontend rebuild.
 
-### Cài thủ công
+### Manual Setup
 
 ```powershell
 # Backend
@@ -54,22 +55,22 @@ backend\.venv\Scripts\pip install -r backend\requirements.txt
 npm install --prefix frontend
 
 # API key
-copy .env.example .env   # điền GEMINI_API_KEY / OPENAI_API_KEY (hoặc nhập sau trong ⚙ Cài đặt)
+copy .env.example .env   # fill in GEMINI_API_KEY / OPENAI_API_KEY (or enter later in ⚙ Settings)
 ```
 
 ```powershell
-# Terminal 1 — backend (cổng 8000). Dùng script này thay vì uvicorn CLI để giữ WS sống khi node AI chạy lâu.
+# Terminal 1 — backend (port 8000). Use this script instead of the uvicorn CLI to keep WS alive during long-running AI nodes.
 backend\.venv\Scripts\python backend\run_server.py
 
-# Terminal 2 — frontend (cổng 5173)
+# Terminal 2 — frontend (port 5173)
 npm run dev --prefix frontend
 ```
 
-Mở http://localhost:5173, kéo node từ thanh trái vào canvas, nối dây, bấm **▶ Chạy**.
+Open http://localhost:5173, drag nodes from the left panel onto the canvas, connect them with wires, and click **▶ Run**.
 
-## Đóng gói thành app desktop
+## Package as a Desktop App
 
-Gói backend + frontend thành **1 app tự chứa** (máy đích không cần Python/Node):
+Bundle backend + frontend into **a single self-contained app** (no Python or Node required on the target machine):
 
 ```powershell
 powershell -File build\build.ps1     # Windows → dist\ImageWorkflow\ImageWorkflow.exe
@@ -78,55 +79,55 @@ powershell -File build\build.ps1     # Windows → dist\ImageWorkflow\ImageWorkf
 bash build/build.sh                  # macOS / Linux → dist/ImageWorkflow/ImageWorkflow
 ```
 
-Double-click để chạy → tự bật server `127.0.0.1:8000` + mở trình duyệt. Dữ liệu
-(`data.db`, `cache/`, `outputs/`...) tạo cạnh file thực thi.
+Double-click to run → automatically starts the server at `127.0.0.1:8000` and opens a browser. Data files
+(`data.db`, `cache/`, `outputs/`...) are created next to the executable.
 
-**Release đa nền tảng:** đẩy tag (`git push origin v0.1.0`) → GitHub Actions build
-Windows + macOS + Linux rồi đính file zip vào Release (`.github/workflows/release.yml`).
+**Cross-platform releases:** push a tag (`git push origin v0.1.0`) → GitHub Actions builds
+Windows + macOS + Linux and attaches zip files to the Release (`.github/workflows/release.yml`).
 
-> **macOS — lần đầu chạy:** app chưa được Apple notarize nên macOS chặn với thông báo
-> *"không thể kiểm tra phần mềm độc hại"* (hỏi từng file `.so`). File tải về bị gắn cờ
-> *quarantine*. Cách nhanh nhất — **chuột phải `Run-ImageWorkflow.command` → Open → Open**
-> (chỉ hỏi 1 lần): script tự gỡ quarantine cho toàn bộ bundle rồi mở app.
+> **macOS — first run:** the app is not Apple-notarized, so macOS blocks it with a
+> *"cannot verify for malware"* warning (one prompt per `.so` file). Downloaded files are flagged
+> with *quarantine*. Quickest fix — **right-click `Run-ImageWorkflow.command` → Open → Open**
+> (asked only once): the script removes quarantine from the entire bundle and then opens the app.
 >
-> Hoặc gỡ thủ công bằng Terminal rồi chạy:
+> Or remove quarantine manually in Terminal and then run:
 >
 > ```bash
-> xattr -dr com.apple.quarantine ImageWorkflow   # thư mục giải nén từ zip
+> xattr -dr com.apple.quarantine ImageWorkflow   # the folder extracted from the zip
 > ./ImageWorkflow/ImageWorkflow
 > ```
 
-## Các node có sẵn
+## Available Nodes
 
-| Node | Nhóm | Chức năng |
+| Node | Group | Function |
 |---|---|---|
-| Prompt | Đầu vào | Nhập text/prompt |
-| Tải ảnh lên | Đầu vào | Upload ảnh + ô **Mô tả ảnh** (đi theo ảnh xuống node Sửa ảnh) |
-| Ghép prompt | Đầu vào | Nối nhiều đoạn text thành một |
-| Tạo ảnh (AI) | AI | Text → ảnh |
-| Sửa ảnh (AI) | AI | Ảnh + prompt → ảnh đã sửa (đổi nền, thêm chi tiết, đổi style...) |
-| Trích vùng (AI) | AI | Ảnh + mô tả đối tượng → AI tìm vùng → crop giữ pixel gốc |
-| Resize | Biến đổi | Đổi kích thước |
-| Bộ lọc | Biến đổi | Trắng đen / blur / sharpen... |
-| Chỉnh màu | Biến đổi | Sáng / tương phản / bão hòa |
-| Lưu ảnh | Đầu ra | Lưu vào `outputs/` |
+| Prompt | Input | Enter text / a prompt |
+| Upload Image | Input | Upload an image + **Image description** field (travels with the image into the Edit Image node) |
+| Merge Prompts | Input | Concatenate multiple text segments into one |
+| Generate Image (AI) | AI | Text → image |
+| Edit Image (AI) | AI | Image + prompt → edited image (change background, add details, change style…) |
+| Extract Region (AI) | AI | Image + object description → AI locates the region → crops while preserving original pixels |
+| Resize | Transform | Change dimensions |
+| Filter | Transform | Grayscale / blur / sharpen… |
+| Color Adjust | Transform | Brightness / contrast / saturation |
+| Save Image | Output | Save to `outputs/` |
 
-## Ví dụ workflow
+## Example Workflow
 
-`Prompt("một chú mèo phi hành gia") → Tạo ảnh (gemini) → Sửa ảnh ("đổi nền thành sao Hỏa") → Resize → Lưu ảnh`
+`Prompt("an astronaut cat") → Generate Image (gemini) → Edit Image ("change background to Mars") → Resize → Save Image`
 
-Workflow mẫu có sẵn trong `workflows/` — bấm **📂 Mở workflow** trên thanh công cụ để tải.
+Sample workflows are available in `workflows/` — click **📂 Open workflow** in the toolbar to load one.
 
-## Kiến trúc
+## Architecture
 
-- **Backend** (`backend/`): Python + FastAPI — engine thực thi workflow theo thứ tự topo,
-  stream tiến độ qua WebSocket, cache kết quả từng node trên đĩa.
-- **Frontend** (`frontend/`): React + React Flow — canvas kéo–thả, preview ảnh trên node.
-- **Provider** (`backend/app/providers/`): cắm thêm bằng cách kế thừa `ImageProvider`,
-  implement `generate()` + `edit()`, đăng ký trong `providers/__init__.py`.
-- **Node mới** (`backend/app/nodes/`): kế thừa `BaseNode`, gắn `@register_node`, khai báo
-  `inputs/outputs/params` — UI tự sinh form, không cần sửa frontend.
+- **Backend** (`backend/`): Python + FastAPI — workflow execution engine with topological ordering,
+  progress streaming via WebSocket, per-node disk caching.
+- **Frontend** (`frontend/`): React + React Flow — drag-and-drop canvas, image previews on nodes.
+- **Provider** (`backend/app/providers/`): add a new provider by extending `ImageProvider`,
+  implementing `generate()` + `edit()`, and registering it in `providers/__init__.py`.
+- **New nodes** (`backend/app/nodes/`): extend `BaseNode`, add `@register_node`, declare
+  `inputs/outputs/params` — the UI auto-generates the form, no frontend changes needed.
 
-## Giấy phép
+## License
 
-Phát hành theo [Apache License 2.0](LICENSE) — tự do dùng, sửa, phân phối (kèm cấp phép sáng chế).
+Released under the [Apache License 2.0](LICENSE) — free to use, modify, and distribute (includes patent grant).
