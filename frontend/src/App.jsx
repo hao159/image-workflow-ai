@@ -20,6 +20,8 @@ import ConnectNodeMenu from './components/ConnectNodeMenu.jsx'
 import { RunContext } from './RunContext.jsx'
 import { ImageViewerProvider } from './ImageViewerContext.jsx'
 import { useToast } from './ToastContext.jsx'
+import { useT } from './i18n/use-t.js'
+import { LANG_OPTIONS } from './i18n/index.js'
 import { layoutNodes } from './auto-layout.js'
 import {
   AlertIcon,
@@ -68,6 +70,7 @@ export default function App() {
   const [theme, setTheme] = useState(resolveTheme)
   const { screenToFlowPosition, updateNodeData, fitView } = useReactFlow()
   const toast = useToast()
+  const { lang, setLang, t } = useT()
   const wsRef = useRef(null)
 
   useEffect(() => {
@@ -537,6 +540,18 @@ export default function App() {
           <button className="btn" onClick={() => setShowImageLibrary(true)}>
             <ImageIcon size={14} /> Thư viện ảnh
           </button>
+          <div className="lang-seg" role="group" aria-label={t('toolbar.language')}>
+            {LANG_OPTIONS.map((o) => (
+              <button
+                key={o.value}
+                type="button"
+                className={`lang-seg-btn${lang === o.value ? ' active' : ''}`}
+                onClick={() => setLang(o.value)}
+              >
+                {o.value.toUpperCase()}
+              </button>
+            ))}
+          </div>
           <button className="btn" onClick={() => setShowSettings(true)}>
             <GearIcon size={14} /> Cài đặt
           </button>

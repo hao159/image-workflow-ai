@@ -93,3 +93,8 @@
 .wf-menu-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
 .wf-menu-date { font-size: 10.5px; color: var(--text-faint); flex-shrink: 0; }
 
+/* ---------- Toolbar language quick toggle ---------- */
+.lang-seg { display: inline-flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+.lang-seg-btn { padding: 4px 8px; font-size: 12px; background: transparent; border: 0; cursor: pointer; color: var(--text); }
+.lang-seg-btn.active { background: var(--bg-raised); font-weight: 600; }
+
