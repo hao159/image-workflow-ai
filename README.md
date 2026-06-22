@@ -102,15 +102,15 @@ Windows + macOS + Linux and attaches zip files to the Release (`.github/workflow
 | Node | Group | Function |
 |---|---|---|
 | Prompt | Input | Enter text / a prompt |
-| Upload Image | Input | Upload an image + **Image description** field (travels with the image into the Edit Image node) |
-| Merge Prompts | Input | Concatenate multiple text segments into one |
-| Generate Image (AI) | AI | Text → image |
-| Edit Image (AI) | AI | Image + prompt → edited image (change background, add details, change style…) |
-| Extract Region (AI) | AI | Image + object description → AI locates the region → crops while preserving original pixels |
+| Upload image | Input | Upload an image + **Image description** field (travels with the image into the Edit image node) |
+| Merge prompts | Input | Concatenate multiple text segments into one |
+| Generate image (AI) | AI | Text → image |
+| Edit image (AI) | AI | Image + prompt → edited image (change background, add details, change style…) |
+| Extract region (AI) | AI | Image + object description → AI locates the region → crops while preserving original pixels |
 | Resize | Transform | Change dimensions |
 | Filter | Transform | Grayscale / blur / sharpen… |
-| Color Adjust | Transform | Brightness / contrast / saturation |
-| Save Image | Output | Save to `outputs/` |
+| Adjust color | Transform | Brightness / contrast / saturation |
+| Save image | Output | Save to `outputs/` |
 
 ## Example Workflow
 
