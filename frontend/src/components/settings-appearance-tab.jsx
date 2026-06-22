@@ -2,10 +2,10 @@ import { useState } from 'react'
 import {
   getRunEffect,
   setRunEffect,
-  RUN_EFFECT_OPTIONS,
+  getRunEffectOptions,
   getThemeSetting,
   setThemeSetting,
-  THEME_OPTIONS,
+  getThemeOptions,
 } from '../ui-settings.js'
 import { useT } from '../i18n/use-t.js'
 import { LANG_OPTIONS } from '../i18n/index.js'
@@ -14,6 +14,7 @@ import { LANG_OPTIONS } from '../i18n/index.js'
 export default function SettingsAppearanceTab() {
   const [runEffect, setRunEffectState] = useState(getRunEffect)
   const [theme, setThemeState] = useState(getThemeSetting)
+  // lang drives re-render so option labels switch language live
   const { t, lang, setLang } = useT()
 
   return (
@@ -34,9 +35,9 @@ export default function SettingsAppearanceTab() {
         </div>
       </div>
       <div className="settings-row">
-        <span>Nền sáng/tối</span>
-        <div className="theme-seg" role="group" aria-label="Chọn nền sáng/tối">
-          {THEME_OPTIONS.map((o) => (
+        <span>{t('settings.themeLabel')}</span>
+        <div className="theme-seg" role="group" aria-label={t('settings.theme.aria')}>
+          {getThemeOptions().map((o) => (
             <button
               key={o.value}
               type="button"
@@ -52,7 +53,7 @@ export default function SettingsAppearanceTab() {
         </div>
       </div>
       <label className="settings-row">
-        <span>Hiệu ứng node đang chạy</span>
+        <span>{t('settings.runEffectLabel')}</span>
         <select
           value={runEffect}
           onChange={(e) => {
@@ -60,7 +61,7 @@ export default function SettingsAppearanceTab() {
             setRunEffectState(e.target.value)
           }}
         >
-          {RUN_EFFECT_OPTIONS.map((o) => (
+          {getRunEffectOptions().map((o) => (
             <option key={o.value} value={o.value}>{o.label}</option>
           ))}
         </select>
