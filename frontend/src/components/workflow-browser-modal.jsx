@@ -1,16 +1,18 @@
 import { useEffect, useMemo, useState } from 'react'
 import { FolderIcon, TrashIcon, XIcon } from './icons.jsx'
 import ExecutionHistoryPanel from './execution-history-panel.jsx'
+import { useT } from '../i18n/use-t.js'
 
-const PAGE_SIZE = 8 // số workflow mỗi trang (paging client-side)
+const PAGE_SIZE = 8 // number of workflows per page (client-side paging)
 
-// Modal giữa màn hình thay cho dropdown Workflows cũ: 2 tab
-//  - Danh sách: workflow đã lưu (có paging) + Tải/Xóa từng dòng.
-//  - Lịch sử: các lần chạy của workflow đang chọn (kiểu n8n) — Phase 3.
+// Full-screen modal replacing the old Workflows dropdown: 2 tabs
+//  - List: saved workflows (with paging) + Load/Delete per row.
+//  - History: run history for the selected workflow (n8n-style) — Phase 3.
 export default function WorkflowBrowserModal({ workflows, onLoad, onDelete, onClose }) {
+  const { t } = useT()
   const [tab, setTab] = useState('list') // 'list' | 'history'
   const [page, setPage] = useState(0)
-  const [selected, setSelected] = useState(null) // tên workflow để xem lịch sử
+  const [selected, setSelected] = useState(null) // workflow name for viewing history
 
   useEffect(() => {
     const onKey = (e) => { if (e.key === 'Escape') onClose() }
@@ -31,7 +33,7 @@ export default function WorkflowBrowserModal({ workflows, onLoad, onDelete, onCl
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal wf-browser" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <span className="modal-title"><FolderIcon size={16} /> Mở workflow</span>
+          <span className="modal-title"><FolderIcon size={16} /> {t('workflowBrowser.title')}</span>
           <button className="btn ghost" onClick={onClose}><XIcon size={15} /></button>
         </div>
 
@@ -40,22 +42,24 @@ export default function WorkflowBrowserModal({ workflows, onLoad, onDelete, onCl
             className={`wf-tab${tab === 'list' ? ' active' : ''}`}
             onClick={() => setTab('list')}
           >
-            Danh sách
+            {t('workflowBrowser.tabList')}
           </button>
           <button
             className={`wf-tab${tab === 'history' ? ' active' : ''}`}
             onClick={() => setTab('history')}
             disabled={!selected}
-            title={selected ? '' : 'Chọn 1 workflow ở tab Danh sách trước'}
+            title={selected ? '' : t('workflowBrowser.tabHistoryDisabledTitle')}
           >
-            Lịch sử{selected ? `: ${selected}` : ''}
+            {selected
+              ? t('workflowBrowser.tabHistorySelected', undefined, { name: selected })
+              : t('workflowBrowser.tabHistory')}
           </button>
         </div>
 
         {tab === 'list' ? (
           <div className="wf-browser-body">
             {workflows.length === 0 && (
-              <div className="wf-browser-empty">Chưa có workflow nào.</div>
+              <div className="wf-browser-empty">{t('workflowBrowser.empty')}</div>
             )}
             {rows.map((wf) => (
               <div
@@ -65,7 +69,7 @@ export default function WorkflowBrowserModal({ workflows, onLoad, onDelete, onCl
               >
                 <button
                   className="wf-row-main"
-                  title="Tải workflow vào canvas"
+                  title={t('workflowBrowser.loadTitle')}
                   onClick={(e) => { e.stopPropagation(); onLoad(wf.name); onClose() }}
                 >
                   <span className="wf-row-name">{wf.name}</span>
@@ -73,14 +77,14 @@ export default function WorkflowBrowserModal({ workflows, onLoad, onDelete, onCl
                 </button>
                 <button
                   className="btn ghost"
-                  title="Xem lịch sử chạy"
+                  title={t('workflowBrowser.historyTitle')}
                   onClick={(e) => { e.stopPropagation(); openHistory(wf.name) }}
                 >
                   🕘
                 </button>
                 <button
                   className="btn ghost danger"
-                  title="Xóa workflow"
+                  title={t('workflowBrowser.deleteTitle')}
                   onClick={(e) => { e.stopPropagation(); onDelete(wf.name) }}
                 >
                   <TrashIcon size={14} />
@@ -90,10 +94,10 @@ export default function WorkflowBrowserModal({ workflows, onLoad, onDelete, onCl
             {pageCount > 1 && (
               <div className="wf-pager">
                 <button className="btn ghost" disabled={safePage === 0}
-                  onClick={() => setPage(safePage - 1)}>‹ Trước</button>
-                <span className="wf-pager-info">Trang {safePage + 1}/{pageCount}</span>
+                  onClick={() => setPage(safePage - 1)}>{t('workflowBrowser.prev')}</button>
+                <span className="wf-pager-info">{t('workflowBrowser.page', undefined, { p: safePage + 1, n: pageCount })}</span>
                 <button className="btn ghost" disabled={safePage >= pageCount - 1}
-                  onClick={() => setPage(safePage + 1)}>Sau ›</button>
+                  onClick={() => setPage(safePage + 1)}>{t('workflowBrowser.next')}</button>
               </div>
             )}
           </div>
@@ -101,7 +105,7 @@ export default function WorkflowBrowserModal({ workflows, onLoad, onDelete, onCl
           <div className="wf-browser-body">
             {selected
               ? <ExecutionHistoryPanel workflowName={selected} />
-              : <div className="wf-browser-empty">Chọn 1 workflow để xem lịch sử.</div>}
+              : <div className="wf-browser-empty">{t('workflowBrowser.emptyHistory')}</div>}
           </div>
         )}
       </div>

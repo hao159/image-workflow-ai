@@ -84,5 +84,18 @@
   "palette.searchPlaceholder": "Tìm node...",
   "palette.hint": "Bấm để nối tiếp vào flow, hoặc kéo thả vào vị trí tùy ý",
   "palette.emptyBackend": "Đang chờ backend...",
-  "palette.emptySearch": "Không tìm thấy node nào."
+  "palette.emptySearch": "Không tìm thấy node nào.",
+  "workflowBrowser.title": "Mở workflow",
+  "workflowBrowser.tabList": "Danh sách",
+  "workflowBrowser.tabHistory": "Lịch sử",
+  "workflowBrowser.tabHistorySelected": "Lịch sử: {name}",
+  "workflowBrowser.tabHistoryDisabledTitle": "Chọn 1 workflow ở tab Danh sách trước",
+  "workflowBrowser.empty": "Chưa có workflow nào.",
+  "workflowBrowser.loadTitle": "Tải workflow vào canvas",
+  "workflowBrowser.historyTitle": "Xem lịch sử chạy",
+  "workflowBrowser.deleteTitle": "Xóa workflow",
+  "workflowBrowser.prev": "‹ Trước",
+  "workflowBrowser.next": "Sau ›",
+  "workflowBrowser.page": "Trang {p}/{n}",
+  "workflowBrowser.emptyHistory": "Chọn 1 workflow để xem lịch sử."
 }

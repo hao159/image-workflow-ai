@@ -84,5 +84,18 @@
   "palette.searchPlaceholder": "Search nodes…",
   "palette.hint": "Click to append to flow, or drag to any position",
   "palette.emptyBackend": "Waiting for backend…",
-  "palette.emptySearch": "No nodes found."
+  "palette.emptySearch": "No nodes found.",
+  "workflowBrowser.title": "Open workflow",
+  "workflowBrowser.tabList": "List",
+  "workflowBrowser.tabHistory": "History",
+  "workflowBrowser.tabHistorySelected": "History: {name}",
+  "workflowBrowser.tabHistoryDisabledTitle": "Select a workflow in the List tab first",
+  "workflowBrowser.empty": "No workflows yet.",
+  "workflowBrowser.loadTitle": "Load workflow into canvas",
+  "workflowBrowser.historyTitle": "View run history",
+  "workflowBrowser.deleteTitle": "Delete workflow",
+  "workflowBrowser.prev": "‹ Prev",
+  "workflowBrowser.next": "Next ›",
+  "workflowBrowser.page": "Page {p}/{n}",
+  "workflowBrowser.emptyHistory": "Select a workflow to view its history."
 }
