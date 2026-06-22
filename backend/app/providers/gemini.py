@@ -1,6 +1,6 @@
 from .. import config
-from .base import (ImageProvider, ProviderError, numbered_image_caption,
-                  parse_bbox_json)
+from .base import (ImageProvider, ProviderError, ProviderErrorWithCode,
+                   numbered_image_caption, parse_bbox_json)
 
 DEFAULT_MODEL = "gemini-2.5-flash-image"
 # Model cho sinh text (enhance prompt...). Model "-image" chỉ trả ảnh nên
@@ -18,9 +18,10 @@ class GeminiProvider(ImageProvider):
     def _get_client(self):
         if self._client is None:
             if not self._api_key:
-                raise ProviderError(
+                raise ProviderErrorWithCode(
                     "Chưa có API key cho Gemini. Thêm cấu hình trong ⚙ Cài đặt model "
-                    "hoặc đặt GEMINI_API_KEY trong file .env.")
+                    "hoặc đặt GEMINI_API_KEY trong file .env.",
+                    "gemini_no_api_key")
             from google import genai
             self._client = genai.Client(api_key=self._api_key)
         return self._client
@@ -30,8 +31,9 @@ class GeminiProvider(ImageProvider):
             if part.inline_data and part.inline_data.data:
                 return part.inline_data.data
         text = getattr(response, "text", None)
-        raise ProviderError(
-            f"Gemini không trả về ảnh nào. Phản hồi: {text or 'rỗng'}")
+        raise ProviderErrorWithCode(
+            f"Gemini không trả về ảnh nào. Phản hồi: {text or 'rỗng'}",
+            "provider_no_image")
 
     def generate(self, prompt: str, *, model: str = "", aspect_ratio: str = "1:1",
                  **options) -> bytes:
@@ -61,7 +63,7 @@ class GeminiProvider(ImageProvider):
         )
         text = (getattr(response, "text", None) or "").strip()
         if not text:
-            raise ProviderError("Gemini không trả về text nào.")
+            raise ProviderErrorWithCode("Gemini không trả về text nào.", "provider_no_text")
         return text
 
     def detect_region(self, image: bytes, target: str, *, model: str = "",

@@ -6,6 +6,14 @@ class ProviderError(Exception):
     pass
 
 
+class ProviderErrorWithCode(ProviderError):
+    """ProviderError carrying a stable i18n error code slug."""
+
+    def __init__(self, message: str, code: str):
+        super().__init__(message)
+        self.code = code
+
+
 def _extract_json_obj(text: str) -> dict:
     """Parse JSON object từ phản hồi model; bóc cụm {...} nếu có code-fence/rác bao."""
     text = (text or "").strip()
@@ -28,9 +36,10 @@ def parse_bbox_json(text: str, scale: float = 1.0, target: str = "") -> list[flo
     data = _extract_json_obj(text)
     box = data.get("box")
     if not data.get("found", True) or not box:
-        raise ProviderError(
+        raise ProviderErrorWithCode(
             f"Không tìm thấy '{target}' trong ảnh. Thử mô tả khác hoặc ảnh rõ hơn."
-            if target else "Không tìm thấy đối tượng trong ảnh.")
+            if target else "Không tìm thấy đối tượng trong ảnh.",
+            "region_not_found")
     if not (isinstance(box, (list, tuple)) and len(box) == 4):
         raise ProviderError(f"bbox không hợp lệ (cần 4 số): {box}")
     return [float(v) / scale for v in box]
@@ -65,14 +74,16 @@ class ImageProvider(ABC):
                       **options) -> str:
         """Sinh text bằng LLM (vd: enhance prompt). Provider nào không có LLM
         text dùng mặc định này — báo lỗi rõ thay vì crash khó hiểu."""
-        raise ProviderError(
+        raise ProviderErrorWithCode(
             f"Provider '{self.name}' không hỗ trợ sinh text. "
-            "Chọn cấu hình Gemini / OpenAI / Codex cho node này.")
+            "Chọn cấu hình Gemini / OpenAI / Codex cho node này.",
+            "provider_no_text_support")
 
     def detect_region(self, image: bytes, target: str, *, model: str = "",
                       **options) -> list[float]:
         """Tìm bbox CHUẨN HÓA [x0,y0,x1,y1] (0..1) của đối tượng `target` trong ảnh
         (node Trích vùng). Provider không vision dùng mặc định này → báo lỗi rõ."""
-        raise ProviderError(
+        raise ProviderErrorWithCode(
             f"Provider '{self.name}' không hỗ trợ trích vùng (detect_region). "
-            "Dùng cấu hình Gemini cho node Trích vùng.")
+            "Dùng cấu hình Gemini cho node Trích vùng.",
+            "provider_no_vision_support")

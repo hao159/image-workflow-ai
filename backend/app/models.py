@@ -32,6 +32,8 @@ class RunEvent(BaseModel):
     type: str  # run_started | node_started | node_finished | node_error | run_finished | run_error
     node_id: Optional[str] = None
     message: Optional[str] = None
+    code: Optional[str] = None          # stable error slug for i18n; None for non-errors
+    params: Optional[dict[str, Any]] = None  # dynamic values for the i18n template
     preview: Optional[str] = None  # base64 PNG thumbnail
     outputs: Optional[dict[str, Any]] = None
     cached: bool = False  # node_finished dùng output cache (không thực thi lại)

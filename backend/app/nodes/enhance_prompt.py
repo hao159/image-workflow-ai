@@ -1,5 +1,6 @@
 from ..providers import provider_options, resolve_model_config
 from .base import BaseNode, Param, Port, register_node
+from ._errors import NodeInputError
 from .prompt_merge import merge_prompt
 
 # Số từ mục tiêu cho từng mức chi tiết của prompt sau khi enhance
@@ -38,8 +39,9 @@ class EnhancePromptNode(BaseNode):
     def run(self, inputs, params):
         prompt = merge_prompt(inputs.get("text"), params.get("prompt"))
         if not prompt.strip():
-            raise ValueError(
-                "Node 'Enhance prompt' cần prompt gốc (nối vào cổng hoặc gõ trực tiếp).")
+            raise NodeInputError(
+                "Node 'Enhance prompt' cần prompt gốc (nối vào cổng hoặc gõ trực tiếp).",
+                "enhance_no_prompt")
         provider, default_model = resolve_model_config(params["provider"])
 
         words = DETAIL_LEVELS.get(params.get("detail") or "vừa", 80)

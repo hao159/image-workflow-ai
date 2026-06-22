@@ -32,7 +32,10 @@ def _topo_order(workflow: Workflow) -> list[str]:
     children: dict[str, list[str]] = defaultdict(list)
     for e in workflow.edges:
         if e.source not in indegree or e.target not in indegree:
-            raise ValueError(f"Cạnh nối tới node không tồn tại: {e.source} -> {e.target}")
+            from .nodes._errors import NodeInputError
+            raise NodeInputError(
+                f"Cạnh nối tới node không tồn tại: {e.source} -> {e.target}",
+                "workflow_edge_invalid")
         indegree[e.target] += 1
         children[e.source].append(e.target)
 
@@ -46,7 +49,9 @@ def _topo_order(workflow: Workflow) -> list[str]:
             if indegree[child] == 0:
                 queue.append(child)
     if len(order) != len(workflow.nodes):
-        raise ValueError("Workflow có vòng lặp (cycle) — không thể thực thi.")
+        from .nodes._errors import NodeInputError
+        raise NodeInputError(
+            "Workflow có vòng lặp (cycle) — không thể thực thi.", "workflow_cycle")
     return order
 
 
@@ -83,15 +88,19 @@ class PassResult:
     """Kết quả 1 lượt chạy topo (1 pass). `ok=False` → node lỗi giữa chừng.
 
     Pass KHÔNG tự emit `run_error` — để caller quyết."""
-    __slots__ = ("ok", "results", "out_keys", "labels", "node_keys", "error")
+    __slots__ = ("ok", "results", "out_keys", "labels", "node_keys", "error",
+                 "error_code", "error_params")
 
-    def __init__(self, ok, results, out_keys, labels, node_keys, error=None):
+    def __init__(self, ok, results, out_keys, labels, node_keys, error=None,
+                 error_code=None, error_params=None):
         self.ok = ok
         self.results = results
         self.out_keys = out_keys
         self.labels = labels
         self.node_keys = node_keys  # node_id -> nk
         self.error = error
+        self.error_code = error_code
+        self.error_params = error_params
 
 
 async def _execute_pass(order: list[str], nodes_by_id: dict, incoming: dict,
@@ -111,8 +120,11 @@ async def _execute_pass(order: list[str], nodes_by_id: dict, incoming: dict,
         try:
             cls = get_node_class(node_def.type)
         except ValueError as e:
-            await emit(RunEvent(type="node_error", node_id=node_id, message=str(e)))
-            return PassResult(False, results, out_keys, labels, node_keys, str(e))
+            err_code = getattr(e, "code", "provider_unknown")
+            await emit(RunEvent(type="node_error", node_id=node_id, message=str(e),
+                                code=err_code))
+            return PassResult(False, results, out_keys, labels, node_keys, str(e),
+                              error_code=err_code)
 
         # Gom value + out_key + nhãn SONG SONG theo từng dây (cùng thứ tự cạnh)
         gathered: dict[str, list[Any]] = defaultdict(list)
@@ -180,8 +192,12 @@ async def _execute_pass(order: list[str], nodes_by_id: dict, incoming: dict,
             outputs = await asyncio.to_thread(instance.run, inputs, params)
         except Exception as e:  # noqa: BLE001 — mọi lỗi node đều báo về UI
             msg = f"{cls.title}: {e}"
-            await emit(RunEvent(type="node_error", node_id=node_id, message=msg))
-            return PassResult(False, results, out_keys, labels, node_keys, msg)
+            err_code = getattr(e, "code", None)
+            err_params = getattr(e, "params", None) or None
+            await emit(RunEvent(type="node_error", node_id=node_id, message=msg,
+                                code=err_code, params=err_params))
+            return PassResult(False, results, out_keys, labels, node_keys, msg,
+                              error_code=err_code, error_params=err_params)
 
         record_outputs(outputs)
         preview = await _make_preview_safe(outputs, node_id)
@@ -210,7 +226,9 @@ async def run_workflow(workflow: Workflow, emit: EventCallback, *,
     try:
         order = _topo_order(workflow)
     except ValueError as e:
-        await emit(RunEvent(type="run_error", message=str(e)))
+        await emit(RunEvent(type="run_error", message=str(e),
+                            code=getattr(e, "code", None),
+                            params=getattr(e, "params", None) or None))
         return
 
     if target is not None:
@@ -224,7 +242,9 @@ async def run_workflow(workflow: Workflow, emit: EventCallback, *,
 
     res = await _execute_pass(order, nodes_by_id, incoming, emit, force_ids=force_ids)
     if not res.ok:
-        await emit(RunEvent(type="run_error", message=res.error))
+        # run_error mirrors the node_error code so the frontend can act on it uniformly
+        await emit(RunEvent(type="run_error", message=res.error,
+                            code=res.error_code, params=res.error_params))
         return
 
     await emit(RunEvent(type="run_finished"))

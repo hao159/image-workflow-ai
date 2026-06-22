@@ -10,6 +10,7 @@ from PIL import Image
 
 from ..providers import provider_options, resolve_model_config
 from .base import BaseNode, Param, Port, register_node
+from ._errors import NodeInputError
 from .prompt_merge import merge_prompt
 
 
@@ -62,10 +63,11 @@ class ExtractRegionNode(BaseNode):
     def run(self, inputs, params):
         image = inputs.get("image")
         if not image:
-            raise ValueError("Node 'Trích vùng' cần ảnh đầu vào.")
+            raise NodeInputError("Node 'Trích vùng' cần ảnh đầu vào.", "extract_no_image")
         target = merge_prompt(inputs.get("target"), params.get("target"))
         if not target.strip():
-            raise ValueError("Node 'Trích vùng' cần mô tả đối tượng cần trích.")
+            raise NodeInputError(
+                "Node 'Trích vùng' cần mô tả đối tượng cần trích.", "extract_no_target")
         provider, model = resolve_model_config(params["provider"])
         bbox = provider.detect_region(image, target, model=model)
         # padding=0.0 hợp lệ (crop sát) → KHÔNG dùng `or` (0.0 falsy → rơi default).

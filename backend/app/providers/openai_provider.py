@@ -2,7 +2,7 @@ import base64
 import io
 
 from .. import config
-from .base import ImageProvider, ProviderError, parse_bbox_json
+from .base import ImageProvider, ProviderError, ProviderErrorWithCode, parse_bbox_json
 
 DEFAULT_MODEL = "gpt-image-1"
 # Model cho sinh text (enhance prompt...). gpt-image-* chỉ trả ảnh — nếu cấu
@@ -29,9 +29,10 @@ class OpenAIProvider(ImageProvider):
     def _get_client(self):
         if self._client is None:
             if not self._api_key:
-                raise ProviderError(
+                raise ProviderErrorWithCode(
                     "Chưa có API key cho OpenAI. Thêm cấu hình trong ⚙ Cài đặt model "
-                    "hoặc đặt OPENAI_API_KEY trong file .env.")
+                    "hoặc đặt OPENAI_API_KEY trong file .env.",
+                    "openai_no_api_key")
             from openai import OpenAI
             self._client = OpenAI(api_key=self._api_key)
         return self._client
@@ -47,7 +48,7 @@ class OpenAIProvider(ImageProvider):
         )
         b64 = result.data[0].b64_json
         if not b64:
-            raise ProviderError("OpenAI không trả về dữ liệu ảnh.")
+            raise ProviderErrorWithCode("OpenAI không trả về dữ liệu ảnh.", "provider_no_image")
         return base64.b64decode(b64)
 
     def generate_text(self, prompt: str, *, model: str = "", system: str = "",
@@ -62,10 +63,12 @@ class OpenAIProvider(ImageProvider):
         messages.append({"role": "user", "content": prompt})
         resp = client.chat.completions.create(model=use_model, messages=messages)
         if not resp.choices:
-            raise ProviderError("OpenAI không trả về lựa chọn nào (có thể bị content filter).")
+            raise ProviderErrorWithCode(
+                "OpenAI không trả về lựa chọn nào (có thể bị content filter).",
+                "provider_no_text")
         text = (resp.choices[0].message.content or "").strip()
         if not text:
-            raise ProviderError("OpenAI không trả về text nào.")
+            raise ProviderErrorWithCode("OpenAI không trả về text nào.", "provider_no_text")
         return text
 
     def _vision_json(self, image: bytes, instruction: str, model: str) -> str:
@@ -86,7 +89,9 @@ class OpenAIProvider(ImageProvider):
             response_format={"type": "json_object"},
         )
         if not resp.choices:
-            raise ProviderError("OpenAI không trả về lựa chọn nào (có thể bị content filter).")
+            raise ProviderErrorWithCode(
+                "OpenAI không trả về lựa chọn nào (có thể bị content filter).",
+                "provider_no_text")
         return resp.choices[0].message.content or ""
 
     def detect_region(self, image: bytes, target: str, *, model: str = "",
@@ -117,5 +122,5 @@ class OpenAIProvider(ImageProvider):
         )
         b64 = result.data[0].b64_json
         if not b64:
-            raise ProviderError("OpenAI không trả về dữ liệu ảnh.")
+            raise ProviderErrorWithCode("OpenAI không trả về dữ liệu ảnh.", "provider_no_image")
         return base64.b64decode(b64)

@@ -85,24 +85,29 @@ def list_model_configs():
 def save_model_config(cfg: ModelConfigIn):
     name = cfg.name.strip()
     if not name:
-        return JSONResponse({"error": "Tên cấu hình không được để trống."}, status_code=400)
+        return JSONResponse({"error": "Tên cấu hình không được để trống.",
+                             "code": "config_name_empty"}, status_code=400)
     if cfg.provider not in PROVIDER_NAMES:
-        return JSONResponse({"error": f"Provider không hợp lệ: {cfg.provider}"}, status_code=400)
+        return JSONResponse({"error": f"Provider không hợp lệ: {cfg.provider}",
+                             "code": "config_provider_invalid"}, status_code=400)
     existing = db.get_model_config(name)
     if existing and existing["id"] != cfg.id:
-        return JSONResponse({"error": f"Đã có cấu hình tên '{name}'."}, status_code=400)
+        return JSONResponse({"error": f"Đã có cấu hình tên '{name}'.",
+                             "code": "config_name_exists"}, status_code=400)
     config_id = db.save_model_config(
         name, cfg.provider, cfg.api_key.strip(), cfg.model.strip(),
         cfg.base_url.strip(), config_id=cfg.id)
     if config_id is None:
-        return JSONResponse({"error": "Không tìm thấy cấu hình cần cập nhật."}, status_code=404)
+        return JSONResponse({"error": "Không tìm thấy cấu hình cần cập nhật.",
+                             "code": "config_not_found"}, status_code=404)
     return {"id": config_id, "name": name}
 
 
 @app.delete("/api/model-configs/{config_id}")
 def delete_model_config(config_id: int):
     if not db.delete_model_config(config_id):
-        return JSONResponse({"error": "Không tìm thấy cấu hình."}, status_code=404)
+        return JSONResponse({"error": "Không tìm thấy cấu hình.",
+                             "code": "config_not_found"}, status_code=404)
     return {"deleted": config_id}
 
 
@@ -123,7 +128,8 @@ class ProviderModelsIn(BaseModel):
 def list_provider_models(provider: str, body: ProviderModelsIn):
     """Trả {static, live, error}. Fetch live luôn fail mềm → static vẫn về, HTTP 200."""
     if provider not in model_catalog.STATIC:
-        return JSONResponse({"error": f"Provider không hợp lệ: {provider}"}, status_code=400)
+        return JSONResponse({"error": f"Provider không hợp lệ: {provider}",
+                             "code": "config_provider_invalid"}, status_code=400)
 
     static = model_catalog.STATIC[provider]
     if not body.refresh:
@@ -149,13 +155,20 @@ def list_provider_models(provider: str, body: ProviderModelsIn):
 async def upload_image(file: UploadFile):
     ext = (file.filename or "img.png").rsplit(".", 1)[-1].lower()
     if ext not in ("png", "jpg", "jpeg", "webp", "gif", "bmp"):
-        return JSONResponse({"error": "Định dạng ảnh không hỗ trợ."}, status_code=400)
+        return JSONResponse({"error": "Định dạng ảnh không hỗ trợ.",
+                             "code": "upload_format_unsupported"}, status_code=400)
     data = await file.read()
     # Chuẩn hóa: thu nhỏ ≤ 2048px + nén (chặn upload vài chục MB, base64 nhẹ hơn).
     try:
         data, out_ext = normalize_image(data)
     except ValueError as e:
-        return JSONResponse({"error": str(e)}, status_code=400)
+        msg = str(e)
+        # Distinguish size-guard vs. decode failure for i18n
+        if "quá lớn" in msg:
+            code = "upload_too_large"
+        else:
+            code = "upload_invalid"
+        return JSONResponse({"error": msg, "code": code}, status_code=400)
     file_id = f"{uuid.uuid4().hex}.{out_ext}"
     (config.UPLOADS_DIR / file_id).write_bytes(data)
     return {"file_id": file_id, "url": f"/api/uploads/{file_id}"}
@@ -212,7 +225,8 @@ def delete_upload(name: str):
     # handler and are rejected by _safe_file instead of leaking to the SPA catch-all.
     path = _safe_file(config.UPLOADS_DIR, name)
     if not path:
-        return JSONResponse({"error": "Không tìm thấy file."}, status_code=404)
+        return JSONResponse({"error": "Không tìm thấy file.", "code": "file_not_found"},
+                            status_code=404)
     path.unlink(missing_ok=True)
     return {"deleted": name}
 
@@ -222,7 +236,8 @@ def delete_output(name: str):
     # Same rationale as delete_upload above.
     path = _safe_file(config.OUTPUTS_DIR, name)
     if not path:
-        return JSONResponse({"error": "Không tìm thấy file."}, status_code=404)
+        return JSONResponse({"error": "Không tìm thấy file.", "code": "file_not_found"},
+                            status_code=404)
     path.unlink(missing_ok=True)
     return {"deleted": name}
 
@@ -231,7 +246,8 @@ def delete_output(name: str):
 def get_upload(name: str):
     path = _safe_file(config.UPLOADS_DIR, name)
     if not path:
-        return JSONResponse({"error": "Không tìm thấy file."}, status_code=404)
+        return JSONResponse({"error": "Không tìm thấy file.", "code": "file_not_found"},
+                            status_code=404)
     return FileResponse(path)
 
 
@@ -239,7 +255,8 @@ def get_upload(name: str):
 def get_output(name: str):
     path = _safe_file(config.OUTPUTS_DIR, name)
     if not path:
-        return JSONResponse({"error": "Không tìm thấy file."}, status_code=404)
+        return JSONResponse({"error": "Không tìm thấy file.", "code": "file_not_found"},
+                            status_code=404)
     return FileResponse(path)
 
 
@@ -248,11 +265,13 @@ def get_cache_image(sha: str):
     # Ảnh GỐC full-res của node AI/biến đổi: phục vụ blob cache theo sha256
     # (frontend lấy sha từ output meta). sha hex 64 ký tự → chặn path traversal.
     if not re.fullmatch(r"[0-9a-f]{64}", sha):
-        return JSONResponse({"error": "Mã ảnh không hợp lệ."}, status_code=404)
+        return JSONResponse({"error": "Mã ảnh không hợp lệ.", "code": "file_not_found"},
+                            status_code=404)
     path = _safe_file(config.CACHE_DIR / "blobs", f"{sha}.bin")
     if not path:
         return JSONResponse(
-            {"error": "Ảnh gốc không còn trong cache (đã bị dọn)."}, status_code=404)
+            {"error": "Ảnh gốc không còn trong cache (đã bị dọn).",
+             "code": "file_not_found"}, status_code=404)
     # Output ảnh của node AI/biến đổi luôn là PNG (chỉ các node này dùng endpoint
     # này; node Tải ảnh lên xem qua /api/uploads). Nếu sau route blob khác định
     # dạng qua đây thì cần sniff content-type.
@@ -268,7 +287,8 @@ def list_workflows():
 def get_workflow(name: str):
     data = db.get_workflow(name)
     if data is None:
-        return JSONResponse({"error": "Không tìm thấy workflow."}, status_code=404)
+        return JSONResponse({"error": "Không tìm thấy workflow.",
+                             "code": "workflow_not_found"}, status_code=404)
     return data
 
 
@@ -277,7 +297,8 @@ def save_workflow(workflow: Workflow, overwrite: bool = False):
     name = workflow.name.strip() or "untitled"
     # Trùng tên & chưa bật ghi đè → 409 để frontend hỏi xác nhận (tránh đè ngầm).
     if not overwrite and db.workflow_exists(name):
-        return JSONResponse({"error": "exists", "name": name}, status_code=409)
+        return JSONResponse({"error": "exists", "name": name,
+                             "code": "workflow_exists"}, status_code=409)
     db.save_workflow(name, workflow.model_dump())
     return {"saved": name}
 
@@ -285,7 +306,8 @@ def save_workflow(workflow: Workflow, overwrite: bool = False):
 @app.delete("/api/workflows/{name}")
 def delete_workflow(name: str):
     if not db.delete_workflow(name):
-        return JSONResponse({"error": "Không tìm thấy workflow."}, status_code=404)
+        return JSONResponse({"error": "Không tìm thấy workflow.",
+                             "code": "workflow_not_found"}, status_code=404)
     return {"deleted": name}
 
 
@@ -303,14 +325,16 @@ def list_workflow_executions(name: str, page: int = 1, size: int = 10):
 def get_workflow_execution(exec_id: int):
     rec = db.get_execution(exec_id)
     if rec is None:
-        return JSONResponse({"error": "Không tìm thấy bản ghi thực thi."}, status_code=404)
+        return JSONResponse({"error": "Không tìm thấy bản ghi thực thi.",
+                             "code": "execution_not_found"}, status_code=404)
     return rec
 
 
 @app.delete("/api/executions/{exec_id}")
 def delete_workflow_execution(exec_id: int):
     if not db.delete_execution(exec_id):
-        return JSONResponse({"error": "Không tìm thấy bản ghi thực thi."}, status_code=404)
+        return JSONResponse({"error": "Không tìm thấy bản ghi thực thi.",
+                             "code": "execution_not_found"}, status_code=404)
     return {"deleted": exec_id}
 
 
@@ -346,7 +370,8 @@ async def ws_run(ws: WebSocket):
                 workflow, target, force = Workflow.model_validate(data), None, frozenset()
         except (ValidationError, ValueError) as e:
             await ws.send_text(RunEvent(
-                type="run_error", message=f"Workflow không hợp lệ: {e}").model_dump_json())
+                type="run_error", message=f"Workflow không hợp lệ: {e}",
+                code="workflow_invalid").model_dump_json())
             return
 
         # Chỉ ghi lịch sử cho ▶ Chạy (full) — KHÔNG ghi chạy 1 node lẻ
@@ -391,7 +416,8 @@ async def ws_run(ws: WebSocket):
             except Exception as e:  # noqa: BLE001 — lỗi engine ngoài dự kiến phải về UI
                 traceback.print_exc()
                 outcome["status"], outcome["error"] = "error", str(e)
-                await emit(RunEvent(type="run_error", message=f"Lỗi nội bộ server: {e}"))
+                await emit(RunEvent(type="run_error", message=f"Lỗi nội bộ server: {e}",
+                                    code="internal_error"))
         finally:
             # Chốt bản ghi kể cả khi client ngắt giữa chừng (status còn 'running' → 'stopped').
             if exec_id is not None:

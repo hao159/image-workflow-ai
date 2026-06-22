@@ -1,5 +1,6 @@
 from ..providers import provider_options, resolve_model_config
 from .base import BaseNode, Param, Port, register_node
+from ._errors import NodeInputError
 from .prompt_merge import merge_prompt
 
 ASPECT_RATIOS = ["1:1", "16:9", "9:16", "3:2", "2:3", "4:3", "3:4"]
@@ -26,7 +27,9 @@ class GenerateImageNode(BaseNode):
     def run(self, inputs, params):
         prompt = merge_prompt(inputs.get("prompt"), params.get("prompt"))
         if not prompt.strip():
-            raise ValueError("Node 'Tạo ảnh' cần prompt (nối vào cổng hoặc gõ trực tiếp).")
+            raise NodeInputError(
+                "Node 'Tạo ảnh' cần prompt (nối vào cổng hoặc gõ trực tiếp).",
+                "generate_no_prompt")
         provider, default_model = resolve_model_config(params["provider"])
         image = provider.generate(
             prompt,
