@@ -116,6 +116,14 @@ export async function clearExecutions(name) {
   return res.json()
 }
 
+// Kiểm tra bản mới (notify-only). Fail mềm: lỗi/offline → backend vẫn trả 200 với
+// error != null, App bỏ qua im lặng nên không làm phiền người dùng.
+export async function checkForUpdate() {
+  const res = await fetch('/api/update-check')
+  if (!res.ok) throw new Error(t('error.update_check_failed'))
+  return res.json()
+}
+
 export function openRunSocket() {
   const proto = location.protocol === 'https:' ? 'wss' : 'ws'
   return new WebSocket(`${proto}://${location.host}/ws/run`)

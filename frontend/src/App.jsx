@@ -26,6 +26,7 @@ import { layoutNodes } from './auto-layout.js'
 import {
   AlertIcon,
   CheckIcon,
+  DownloadIcon,
   FolderIcon,
   GearIcon,
   ImageIcon,
@@ -36,6 +37,7 @@ import {
   TrashIcon,
 } from './components/icons.jsx'
 import {
+  checkForUpdate,
   clearCache as clearCacheApi,
   deleteWorkflow,
   fetchNodeTypes,
@@ -68,6 +70,8 @@ export default function App() {
   // Theme hiện tại ('light'|'dark') để React Flow đổi colorMode + màu lưới nền
   // theo Sáng/Tối. Nghe sự kiện 'iw-theme-change' (phát từ ui-settings.applyTheme).
   const [theme, setTheme] = useState(resolveTheme)
+  // Bản mới trên GitHub (notify-only): { latest, url } khi có, null khi không.
+  const [update, setUpdate] = useState(null)
   const { screenToFlowPosition, updateNodeData, fitView } = useReactFlow()
   const toast = useToast()
   const { lang, setLang, t } = useT()
@@ -115,6 +119,13 @@ export default function App() {
       })
     listWorkflows().then(setSavedList).catch(() => {})
   }, [toast])
+
+  // Dò bản mới 1 lần lúc mở app — lỗi/offline thì im lặng bỏ qua (không phiền user).
+  useEffect(() => {
+    checkForUpdate()
+      .then((info) => { if (info?.update_available) setUpdate(info) })
+      .catch(() => {})
+  }, [])
 
   const findPort = useCallback(
     (nodeId, handleId, direction) => {
@@ -566,6 +577,15 @@ export default function App() {
             <TrashIcon size={14} /> {t('toolbar.clearCache')}
           </button>
           <div className="toolbar-spacer" />
+          {update && (
+            <button
+              className="btn update"
+              onClick={() => window.open(update.url, '_blank', 'noopener,noreferrer')}
+              title={t('toolbar.updateTitle', undefined, { version: update.latest })}
+            >
+              <DownloadIcon size={13} /> {t('toolbar.update', undefined, { version: update.latest })}
+            </button>
+          )}
           {statusMsg && (
             <span className={`status-chip ${statusKind}`} title={statusMsg}>
               {statusKind === 'busy' && <span className="spinner" />}
