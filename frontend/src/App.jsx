@@ -23,6 +23,7 @@ import { useToast } from './ToastContext.jsx'
 import { useT } from './i18n/use-t.js'
 import { LANG_OPTIONS, translateError } from './i18n/index.js'
 import { layoutNodes } from './auto-layout.js'
+import { reconcileParams } from './node-params-reconcile.js'
 import {
   AlertIcon,
   CheckIcon,
@@ -98,10 +99,12 @@ export default function App() {
     setNodeTypeMetas(metas)
     const byType = Object.fromEntries(metas.map((m) => [m.type, m]))
     setNodes((nds) =>
-      nds.map((n) => ({
-        ...n,
-        data: { ...n.data, meta: byType[n.data.meta.type] || n.data.meta },
-      })),
+      nds.map((n) => {
+        const meta = byType[n.data.meta.type] || n.data.meta
+        // Khi cấu hình model thay đổi, options của param 'select' động đổi theo →
+        // gán lại giá trị param đã cũ/rỗng về default mới (xem reconcileParams).
+        return { ...n, data: { ...n.data, meta, params: reconcileParams(n.data.params, meta) } }
+      }),
     )
   }, [setNodes])
 
