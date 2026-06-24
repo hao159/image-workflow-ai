@@ -29,6 +29,13 @@ for d in (OUTPUTS_DIR, UPLOADS_DIR, WORKFLOWS_DIR, CACHE_DIR / "nodes", CACHE_DI
 # Ngưỡng tổng dung lượng blobs cache; vượt → tự xóa blob cũ nhất (LRU theo mtime).
 CACHE_MAX_BYTES = int(os.getenv("CACHE_MAX_BYTES", str(500 * 1024 * 1024)))
 
+# Phiên bản app đang chạy — nguồn sự thật cho việc kiểm tra cập nhật (notify-only).
+# Khi phát hành: bump giá trị này KÈM tag git 'v<APP_VERSION>' để release workflow
+# build & đính bản đóng gói (xem .github/workflows/release.yml).
+APP_VERSION = "0.2.0"
+# Repo GitHub dùng để dò release mới nhất. Đổi qua env nếu fork sang owner khác.
+GITHUB_REPO = os.getenv("GITHUB_REPO", "hao159/image-workflow-ai")
+
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 

@@ -18,6 +18,7 @@ from .models import RunEvent, RunRequest, Workflow
 from .nodes import node_type_metadata
 from .oauth_routes import router as oauth_router
 from .providers import PROVIDER_NAMES, model_catalog
+from .update_check import check_for_update
 
 db.init_db()
 
@@ -31,6 +32,17 @@ app.add_middleware(
 )
 
 app.include_router(oauth_router)
+
+
+@app.get("/api/version")
+def get_version():
+    return {"version": config.APP_VERSION}
+
+
+@app.get("/api/update-check")
+async def get_update_check(force: bool = False):
+    """So version đang chạy với release GitHub mới nhất. Notify-only (không tự cập nhật)."""
+    return await check_for_update(force=force)
 
 
 @app.get("/api/node-types")

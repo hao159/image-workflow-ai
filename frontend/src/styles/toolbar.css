@@ -93,6 +93,19 @@
 .wf-menu-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
 .wf-menu-date { font-size: 10.5px; color: var(--text-faint); flex-shrink: 0; }
 
+/* ---------- Nút "có bản mới" (notify-only, mở trang release) ---------- */
+.btn.update {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  background: var(--accent-soft);
+  font-weight: 600;
+}
+.btn.update:hover:not(:disabled) {
+  color: var(--accent-hover);
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
 /* ---------- Toolbar language quick toggle ---------- */
 .lang-seg { display: inline-flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
 .lang-seg-btn { padding: 4px 8px; font-size: 12px; background: transparent; border: 0; cursor: pointer; color: var(--text); }
