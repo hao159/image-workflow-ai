@@ -1,5 +1,6 @@
 from .. import config
 from .base import BaseNode, Param, Port, register_node
+from ._errors import NodeInputError
 
 
 @register_node
@@ -33,7 +34,8 @@ class LoadImageNode(BaseNode):
         file_id = params.get("file_id") or ""
         path = (config.UPLOADS_DIR / file_id).resolve()
         if not file_id or not path.is_relative_to(config.UPLOADS_DIR) or not path.exists():
-            raise ValueError("Node 'Tải ảnh lên' chưa có ảnh nào được upload.")
+            raise NodeInputError(
+                "Node 'Tải ảnh lên' chưa có ảnh nào được upload.", "load_image_missing")
         return {"image": path.read_bytes()}
 
 

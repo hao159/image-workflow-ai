@@ -20,7 +20,10 @@ import ConnectNodeMenu from './components/ConnectNodeMenu.jsx'
 import { RunContext } from './RunContext.jsx'
 import { ImageViewerProvider } from './ImageViewerContext.jsx'
 import { useToast } from './ToastContext.jsx'
+import { useT } from './i18n/use-t.js'
+import { LANG_OPTIONS, translateError } from './i18n/index.js'
 import { layoutNodes } from './auto-layout.js'
+import { reconcileParams } from './node-params-reconcile.js'
 import {
   AlertIcon,
   CheckIcon,
@@ -68,6 +71,7 @@ export default function App() {
   const [theme, setTheme] = useState(resolveTheme)
   const { screenToFlowPosition, updateNodeData, fitView } = useReactFlow()
   const toast = useToast()
+  const { lang, setLang, t } = useT()
   const wsRef = useRef(null)
 
   useEffect(() => {
@@ -95,10 +99,12 @@ export default function App() {
     setNodeTypeMetas(metas)
     const byType = Object.fromEntries(metas.map((m) => [m.type, m]))
     setNodes((nds) =>
-      nds.map((n) => ({
-        ...n,
-        data: { ...n.data, meta: byType[n.data.meta.type] || n.data.meta },
-      })),
+      nds.map((n) => {
+        const meta = byType[n.data.meta.type] || n.data.meta
+        // Khi cấu hình model thay đổi, options của param 'select' động đổi theo →
+        // gán lại giá trị param đã cũ/rỗng về default mới (xem reconcileParams).
+        return { ...n, data: { ...n.data, meta, params: reconcileParams(n.data.params, meta) } }
+      }),
     )
   }, [setNodes])
 
@@ -106,9 +112,9 @@ export default function App() {
     fetchNodeTypes()
       .then(setNodeTypeMetas)
       .catch(() => {
-        const m = '⚠ Không kết nối được backend (cổng 8000). Hãy chạy backend trước.'
+        const m = '⚠ ' + t('status.backendUnavailable')
         setStatusMsg(m) // giữ trong chip vì là lỗi BỀN (backend chưa chạy)
-        toast.error('Không kết nối được backend (cổng 8000). Hãy chạy backend trước.')
+        toast.error(t('status.backendUnavailable'))
       })
     listWorkflows().then(setSavedList).catch(() => {})
   }, [toast])
@@ -317,7 +323,7 @@ export default function App() {
       if (running || nodes.length === 0) return
       setRunning(true)
       setRunningNodeId(target)
-      setStatusMsg(target ? 'Đang chạy node...' : 'Đang chạy...')
+      setStatusMsg(target ? t('status.runningNode') : t('status.running'))
       setEdgesAnimated(true)
       // Chạy tổng → reset hết. Chạy 1 node → chỉ reset node đó (giữ preview các
       // node khác; node cache-hit upstream tự cập nhật qua event node_finished).
@@ -349,39 +355,41 @@ export default function App() {
             })
             break
           case 'node_error':
-            updateNodeData(ev.node_id, { status: 'error', error: ev.message })
+            updateNodeData(ev.node_id, { status: 'error', error: translateError(ev.code, ev.message, ev.params) })
             break
           case 'run_finished':
             runEnded = true
             setStatusMsg('') // chip chỉ giữ trạng thái đang chạy → xong thì ẩn
-            toast.success('Hoàn thành')
+            toast.success(t('status.done'))
             setRunning(false)
             setRunningNodeId(null)
             setEdgesAnimated(false)
             break
-          case 'run_error':
+          case 'run_error': {
             runEnded = true
-            setStatusMsg(`✗ Lỗi: ${ev.message}`) // giữ lỗi trong chip (bền) + toast
-            toast.error(`Lỗi: ${ev.message}`)
+            const runErrMsg = translateError(ev.code, ev.message, ev.params)
+            setStatusMsg('✗ ' + t('status.error', undefined, { message: runErrMsg })) // giữ lỗi trong chip (bền) + toast
+            toast.error(t('status.error', undefined, { message: runErrMsg }))
             setRunning(false)
             setRunningNodeId(null)
             setEdgesAnimated(false)
             break
+          }
         }
       }
       // WS đóng khi run chưa kết thúc = backend rớt/restart (vd uvicorn --reload
       // khi file .py đổi giữa lúc chạy) → báo lỗi rõ thay vì treo "Đang chạy...".
       ws.onclose = () => {
         if (runEnded) return
-        setStatusMsg('✗ Mất kết nối backend giữa chừng (backend restart?). Chạy lại workflow.')
-        toast.error('Mất kết nối backend giữa chừng (backend restart?). Chạy lại workflow.')
+        setStatusMsg('✗ ' + t('status.connLost'))
+        toast.error(t('status.connLost'))
         setRunning(false)
         setRunningNodeId(null)
         setEdgesAnimated(false)
         setNodes((nds) =>
           nds.map((n) =>
             n.data.status === 'running'
-              ? { ...n, data: { ...n.data, status: 'error', error: 'Mất kết nối khi đang chạy.' } }
+              ? { ...n, data: { ...n.data, status: 'error', error: t('status.connLostNode') } }
               : n,
           ),
         )
@@ -400,7 +408,7 @@ export default function App() {
     setRunning(false)
     setRunningNodeId(null)
     setStatusMsg('')
-    toast.info('Đã dừng')
+    toast.info(t('status.stopped'))
     setEdgesAnimated(false)
   }, [setEdgesAnimated, toast])
 
@@ -408,7 +416,7 @@ export default function App() {
     try {
       await clearCacheApi()
       setStatusMsg('')
-      toast.success('Đã xóa cache')
+      toast.success(t('status.cacheCleared'))
       setNodes((nds) => nds.map((n) => ({ ...n, data: { ...n.data, cached: false } })))
     } catch (e) {
       setStatusMsg('')
@@ -430,15 +438,15 @@ export default function App() {
     try {
       const { saved } = await saveWorkflow(buildPayload(), { overwrite })
       setStatusMsg('')
-      toast.success(`Đã lưu "${saved}"`)
+      toast.success(t('status.saved', undefined, { name: saved }))
       setSavedList(await listWorkflows())
     } catch (e) {
       // Backend trả 409 (tên đã tồn tại) → hỏi xác nhận ghi đè rồi lưu lại.
       if (e.code === 'exists') {
-        if (confirm(`Workflow "${workflowName}" đã tồn tại. Ghi đè?`)) {
+        if (confirm(t('app.confirmOverwrite', undefined, { name: workflowName }))) {
           await doSave(true)
         } else {
-          toast.info('Đã hủy lưu')
+          toast.info(t('status.saveCancelled'))
         }
         return
       }
@@ -450,12 +458,12 @@ export default function App() {
   const save = useCallback(() => doSave(false), [doSave])
 
   const removeWorkflow = useCallback(async (name) => {
-    if (!confirm(`Xóa workflow "${name}"?`)) return
+    if (!confirm(t('app.confirmDeleteWorkflow', undefined, { name }))) return
     try {
       await deleteWorkflow(name)
       setSavedList(await listWorkflows())
       setStatusMsg('')
-      toast.success(`Đã xóa "${name}"`)
+      toast.success(t('status.workflowDeleted', undefined, { name }))
     } catch (e) {
       setStatusMsg('')
       toast.error(e.message)
@@ -493,7 +501,7 @@ export default function App() {
           })),
         )
         setStatusMsg('')
-        toast.success(`Đã tải "${name}"`)
+        toast.success(t('status.workflowLoaded', undefined, { name }))
         setShowWorkflowBrowser(false)
       } catch (e) {
         setStatusMsg('')
@@ -516,37 +524,49 @@ export default function App() {
             className="wf-name"
             value={workflowName}
             onChange={(e) => setWorkflowName(e.target.value)}
-            placeholder="tên workflow"
+            placeholder={t('toolbar.workflowNamePlaceholder')}
           />
           <div className="toolbar-sep" />
           <button className="btn primary" onClick={run} disabled={running || nodes.length === 0}>
-            <PlayIcon size={13} /> Chạy
+            <PlayIcon size={13} /> {t('toolbar.run')}
           </button>
           {running && (
-            <button className="btn danger" onClick={stop}><StopIcon size={11} /> Dừng</button>
+            <button className="btn danger" onClick={stop}><StopIcon size={11} /> {t('toolbar.stop')}</button>
           )}
           <button className="btn" onClick={save} disabled={nodes.length === 0}>
-            <SaveIcon size={14} /> Lưu
+            <SaveIcon size={14} /> {t('toolbar.save')}
           </button>
           <button
             className="btn"
             onClick={() => { listWorkflows().then(setSavedList).catch(() => {}); setShowWorkflowBrowser(true) }}
           >
-            <FolderIcon size={14} /> Mở workflow
+            <FolderIcon size={14} /> {t('toolbar.open')}
           </button>
           <button className="btn" onClick={() => setShowImageLibrary(true)}>
-            <ImageIcon size={14} /> Thư viện ảnh
+            <ImageIcon size={14} /> {t('toolbar.imageLibrary')}
           </button>
+          <div className="lang-seg" role="group" aria-label={t('toolbar.language')}>
+            {LANG_OPTIONS.map((o) => (
+              <button
+                key={o.value}
+                type="button"
+                className={`lang-seg-btn${lang === o.value ? ' active' : ''}`}
+                onClick={() => setLang(o.value)}
+              >
+                {o.value.toUpperCase()}
+              </button>
+            ))}
+          </div>
           <button className="btn" onClick={() => setShowSettings(true)}>
-            <GearIcon size={14} /> Cài đặt
+            <GearIcon size={14} /> {t('toolbar.settings')}
           </button>
           <button
             className="btn ghost"
-            title="Xóa cache output (lần chạy kế sẽ chạy lại tất cả, gọi lại API)"
+            title={t('toolbar.clearCacheTitle')}
             onClick={clearCache}
             disabled={running}
           >
-            <TrashIcon size={14} /> Xóa cache
+            <TrashIcon size={14} /> {t('toolbar.clearCache')}
           </button>
           <div className="toolbar-spacer" />
           {statusMsg && (
@@ -559,14 +579,14 @@ export default function App() {
           )}
           <button
             className="btn ghost danger"
-            title="Xóa toàn bộ node trên canvas"
+            title={t('toolbar.clearCanvasTitle')}
             onClick={() => {
               setNodes([])
               setEdges([])
               setStatusMsg('')
             }}
           >
-            <TrashIcon size={14} /> Xóa hết
+            <TrashIcon size={14} /> {t('toolbar.clearCanvas')}
           </button>
         </div>
         <RunContext.Provider value={runCtx}>
@@ -594,7 +614,7 @@ export default function App() {
             <Controls>
               <ControlButton
                 onClick={arrange}
-                title="Dàn node tự động cho gọn (trái → phải) rồi căn khung nhìn"
+                title={t('toolbar.autoLayoutTitle')}
                 disabled={nodes.length === 0}
               >
                 <LayoutIcon size={15} />

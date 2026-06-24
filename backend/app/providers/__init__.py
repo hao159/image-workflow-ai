@@ -1,5 +1,5 @@
 from .. import db
-from .base import ImageProvider, ProviderError
+from .base import ImageProvider, ProviderError, ProviderErrorWithCode
 from .fake import FakeProvider
 from .gemini import GeminiProvider
 from .openai_codex import OpenAICodexProvider
@@ -21,7 +21,8 @@ FORCE_FAKE = False
 def make_provider(provider_name: str, api_key: str = "", base_url: str = "") -> ImageProvider:
     cls = PROVIDER_CLASSES.get(provider_name)
     if cls is None:
-        raise ProviderError(f"Provider không hỗ trợ: {provider_name}")
+        raise ProviderErrorWithCode(
+            f"Provider không hỗ trợ: {provider_name}", "provider_unknown")
     if provider_name == "fake":
         return cls()  # không cần api_key / mạng
     if provider_name == "codex":
@@ -43,8 +44,9 @@ def resolve_model_config(selection: str) -> tuple[ImageProvider, str]:
         provider = make_provider(cfg["provider"], api_key=cfg["api_key"],
                                  base_url=cfg["base_url"])
         return provider, cfg["model"] or ""
-    raise ProviderError(
-        f"Cấu hình model '{selection}' không tồn tại. Mở ⚙ Cài đặt model để thêm.")
+    raise ProviderErrorWithCode(
+        f"Cấu hình model '{selection}' không tồn tại. Mở ⚙ Cài đặt model để thêm.",
+        "model_config_not_found")
 
 
 def provider_options() -> list[str]:

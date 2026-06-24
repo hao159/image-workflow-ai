@@ -1,24 +1,30 @@
 // Setting giao diện phía client, lưu localStorage (không cần backend).
 // Hiện có: theme sáng/tối, hiệu ứng hiển thị khi node đang chạy.
 import { categoryStyle } from './node-category-styles.js'
+import { t } from './i18n/index.js'
 
 const STORAGE_KEY = 'iw-ui-settings'
 
-export const RUN_EFFECT_OPTIONS = [
-  { value: 'solid', label: 'Phẳng (mặc định)' },
-  { value: 'auto', label: 'Theo loại node' },
-  { value: 'glow', label: 'Viền phát sáng' },
-  { value: 'scan', label: 'Thanh quét dưới header' },
-  { value: 'pulse', label: 'Nhịp đập viền' },
-  { value: 'off', label: 'Tắt hiệu ứng' },
-]
+// Getter functions so labels re-evaluate at call time → live language switch.
+export function getRunEffectOptions() {
+  return [
+    { value: 'solid', label: t('settings.runEffect.solid') },
+    { value: 'auto',  label: t('settings.runEffect.auto') },
+    { value: 'glow',  label: t('settings.runEffect.glow') },
+    { value: 'scan',  label: t('settings.runEffect.scan') },
+    { value: 'pulse', label: t('settings.runEffect.pulse') },
+    { value: 'off',   label: t('settings.runEffect.off') },
+  ]
+}
 
 // Theme: 'system' bám prefers-color-scheme của OS; 'light'/'dark' ép cứng.
-export const THEME_OPTIONS = [
-  { value: 'system', label: 'Hệ thống' },
-  { value: 'light', label: 'Sáng' },
-  { value: 'dark', label: 'Tối' },
-]
+export function getThemeOptions() {
+  return [
+    { value: 'system', label: t('settings.theme.system') },
+    { value: 'light',  label: t('settings.theme.light') },
+    { value: 'dark',   label: t('settings.theme.dark') },
+  ]
+}
 
 let cached = null
 let themeCached = null

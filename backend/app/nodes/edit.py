@@ -1,5 +1,6 @@
 from ..providers import provider_options, resolve_model_config
 from .base import BaseNode, Param, Port, register_node
+from ._errors import NodeInputError
 from .image_label_block import compose_edit_prompt
 from .prompt_merge import merge_prompt
 
@@ -30,10 +31,11 @@ class EditImageNode(BaseNode):
     def run(self, inputs, params):
         image = inputs.get("image")
         if not image:
-            raise ValueError("Node 'Sửa ảnh' cần ảnh đầu vào.")
+            raise NodeInputError("Node 'Sửa ảnh' cần ảnh đầu vào.", "edit_no_image")
         prompt = merge_prompt(inputs.get("prompt"), params.get("prompt"))
         if not prompt.strip():
-            raise ValueError("Node 'Sửa ảnh' cần prompt mô tả thay đổi.")
+            raise NodeInputError(
+                "Node 'Sửa ảnh' cần prompt mô tả thay đổi.", "edit_no_prompt")
         images = [image, *(inputs.get("images") or [])]
         if inputs.get("image2"):  # tương thích workflow lưu trước khi có cổng multiple
             images.append(inputs["image2"])

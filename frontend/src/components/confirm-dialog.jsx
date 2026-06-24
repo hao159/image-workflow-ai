@@ -1,13 +1,17 @@
 import { useEffect } from 'react'
+import { useT } from '../i18n/use-t.js'
 
 // Popup xác nhận dùng chung (thay window.confirm). Esc / backdrop / Hủy = hủy.
 export default function ConfirmDialog({
   message,
-  confirmLabel = 'Xóa',
+  confirmLabel,
   danger = true,
   onConfirm,
   onCancel,
 }) {
+  const { t } = useT()
+  const label = confirmLabel ?? t('dialog.defaultConfirm')
+
   useEffect(() => {
     const onKey = (e) => { if (e.key === 'Escape') onCancel() }
     window.addEventListener('keydown', onKey)
@@ -24,9 +28,9 @@ export default function ConfirmDialog({
       >
         <div className="confirm-msg">{message}</div>
         <div className="confirm-actions">
-          <button className="btn ghost" onClick={onCancel}>Hủy</button>
+          <button className="btn ghost" onClick={onCancel}>{t('dialog.cancel')}</button>
           <button className={`btn${danger ? ' danger' : ''}`} onClick={onConfirm}>
-            {confirmLabel}
+            {label}
           </button>
         </div>
       </div>

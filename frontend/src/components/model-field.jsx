@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { listProviderModels } from '../api.js'
+import { useT } from '../i18n/use-t.js'
 
 // Sentinel cho option "Nhập tay" trong <select> (gõ tên model tự do).
 const MANUAL = '__manual__'
@@ -9,17 +10,13 @@ const dedupe = (...lists) => [...new Set(lists.flat().filter(Boolean))]
 // Gợi ý năng lực model cho dropdown (hiển thị-only, không đổi value lưu).
 // codex = host tool gen ảnh; tên chứa image/dall/imagen = model ảnh; còn lại coi
 // là text/vision. Heuristic — chỉ để nhìn phát biết.
-function capabilityTag(provider, model) {
+// Returns a catalog key so callers can translate at render time.
+function capabilityTagKey(provider, model) {
   if (!model) return ''
-  if (provider === 'codex') return 'ảnh'
+  if (provider === 'codex') return 'model.capabilityImage'
   const m = model.toLowerCase()
-  if (m.includes('image') || m.includes('dall') || m.includes('imagen')) return 'ảnh'
-  return 'text'
-}
-
-const optionLabel = (provider, model) => {
-  const tag = capabilityTag(provider, model)
-  return tag ? `${model} (${tag})` : model
+  if (m.includes('image') || m.includes('dall') || m.includes('imagen')) return 'model.capabilityImage'
+  return 'model.capabilityText'
 }
 
 /**
@@ -31,6 +28,13 @@ export default function ModelField({ provider, configId, apiKey, baseUrl, value,
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [manual, setManual] = useState(false)
+  // lang drives re-render so capability tags switch language live
+  const { t, lang } = useT()
+
+  const optionLabel = (prov, model) => {
+    const tagKey = capabilityTagKey(prov, model)
+    return tagKey ? `${model} (${t(tagKey)})` : model
+  }
 
   // Đổi provider → nạp static (không chạm mạng). value lạ → rơi vào Nhập tay.
   useEffect(() => {
@@ -80,24 +84,24 @@ export default function ModelField({ provider, configId, apiKey, baseUrl, value,
 
   return (
     <label>
-      <span>Model</span>
+      <span>{t('model.fieldModel')}</span>
       <div className="model-field">
         <select value={selectValue} onChange={(e) => onSelect(e.target.value)}>
-          <option value="">{placeholder || 'mặc định'}</option>
+          <option value="">{placeholder || t('model.fieldModelDefault')}</option>
           {options.map((m) => (
             <option key={m} value={m}>{optionLabel(provider, m)}</option>
           ))}
-          <option value={MANUAL}>✎ Nhập tay…</option>
+          <option value={MANUAL}>{t('model.manualEntry')}</option>
         </select>
         <button type="button" className="btn ghost" disabled={loading} onClick={refresh}
-                title="Tải danh sách model từ API">
+                title={t('model.loadModelsTitle')}>
           {loading ? '…' : '⟳'}
         </button>
       </div>
       {manual && (
         <input
           type="text"
-          placeholder={placeholder || 'gõ tên model'}
+          placeholder={placeholder || t('model.fieldModelPlaceholderManual')}
           value={value}
           onChange={(e) => onChange(e.target.value)}
         />

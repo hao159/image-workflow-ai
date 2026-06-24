@@ -22,7 +22,7 @@ from urllib.parse import urlencode
 import httpx
 
 from .. import config
-from .base import ProviderError
+from .base import ProviderError, ProviderErrorWithCode
 
 # Client công khai + endpoint của Codex CLI (redirect_uri đăng ký cứng cổng 1455).
 CLIENT_ID = "app_EMoamEEZ73f0CkXaXp7hrann"
@@ -190,14 +190,16 @@ def get_valid_access_token() -> tuple[str, str]:
     access_token = tokens.get("access_token", "")
     account_id = tokens.get("account_id", "")
     if not access_token:
-        raise ProviderError(
-            "Chưa đăng nhập OpenAI (Codex). Mở ⚙ Cài đặt model để đăng nhập.")
+        raise ProviderErrorWithCode(
+            "Chưa đăng nhập OpenAI (Codex). Mở ⚙ Cài đặt model để đăng nhập.",
+            "oauth_not_logged_in")
 
     if _is_expired(access_token):
         refresh_token = tokens.get("refresh_token", "")
         if not refresh_token:
-            raise ProviderError(
-                "Phiên OpenAI hết hạn và không refresh được. Đăng nhập lại.")
+            raise ProviderErrorWithCode(
+                "Phiên OpenAI hết hạn và không refresh được. Đăng nhập lại.",
+                "oauth_expired")
         resp = refresh_access_token(refresh_token)
         # refresh có thể không trả refresh_token mới → giữ cái cũ
         resp.setdefault("refresh_token", refresh_token)
